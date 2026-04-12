@@ -19,6 +19,7 @@ export async function addExpense(
   const amountStr = formData.get("amount") as string;
   const date = formData.get("date") as string;
   const paidBy = formData.get("paidBy") as string;
+  const splitMethod = (formData.get("splitMethod") as string) || "ownership";
 
   if (!description?.trim()) return { error: "Description is required" };
   const amount = parseFloat(amountStr);
@@ -64,12 +65,18 @@ export async function addExpense(
     return { error: "Group has no members" };
   }
 
-  const splits = members.map((m) => ({
-    expense_id: expense.id,
-    user_id: m.user_id,
-    share_pct: m.ownership_pct,
-    share_amount: Math.round(amount * Number(m.ownership_pct)) / 100,
-  }));
+  const splits = members.map((m) => {
+    const pct =
+      splitMethod === "equal"
+        ? Math.round((100 / members.length) * 100) / 100
+        : Number(m.ownership_pct);
+    return {
+      expense_id: expense.id,
+      user_id: m.user_id,
+      share_pct: pct,
+      share_amount: Math.round(amount * pct) / 100,
+    };
+  });
 
   const { error: splitsError } = await supabase
     .from("expense_splits")
