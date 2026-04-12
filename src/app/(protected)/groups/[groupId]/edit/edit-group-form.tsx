@@ -48,7 +48,7 @@ export function EditGroupForm({
         <div>
           <label
             htmlFor="name"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-ink-muted"
           >
             Group name
           </label>

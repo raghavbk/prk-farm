@@ -79,7 +79,7 @@ export function MemberSearch({ members, onChange }: Props) {
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700">
+      <label className="block text-sm font-medium text-ink-muted">
         Add members by email
       </label>
       <div className="relative mt-1">
@@ -91,14 +91,14 @@ export function MemberSearch({ members, onChange }: Props) {
           className="w-full input-warm"
         />
         {(results.length > 0 || searching || noResults) && (
-          <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dropdown-enter">
+          <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-surface-raised shadow-lg dropdown-enter">
             {searching && (
-              <div className="px-3 py-2 text-sm text-gray-500">
+              <div className="px-3 py-2 text-sm text-ink-faint">
                 Searching...
               </div>
             )}
             {noResults && !searching && (
-              <div className="px-3 py-2 text-sm text-gray-500">
+              <div className="px-3 py-2 text-sm text-ink-faint">
                 No user found for that email
               </div>
             )}
@@ -107,10 +107,10 @@ export function MemberSearch({ members, onChange }: Props) {
                 key={profile.id}
                 type="button"
                 onClick={() => addMember(profile)}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-surface-warm"
               >
                 <span className="font-medium">{profile.display_name}</span>
-                <span className="ml-2 text-gray-500">{profile.email}</span>
+                <span className="ml-2 text-ink-faint">{profile.email}</span>
               </button>
             ))}
           </div>
@@ -122,18 +122,18 @@ export function MemberSearch({ members, onChange }: Props) {
           {members.map((m) => (
             <li
               key={m.userId}
-              className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2"
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-ink truncate">
                   {m.displayName}
                 </p>
-                <p className="text-xs text-gray-500 truncate">{m.email}</p>
+                <p className="text-xs text-ink-faint truncate">{m.email}</p>
               </div>
               <button
                 type="button"
                 onClick={() => removeMember(m.userId)}
-                className="text-gray-400 hover:text-red-500 text-sm"
+                className="text-ink-faint hover:text-danger text-sm"
               >
                 Remove
               </button>

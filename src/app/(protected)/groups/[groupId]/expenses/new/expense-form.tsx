@@ -22,7 +22,7 @@ export function ExpenseForm({ groupId, members, currentUserId }: Props) {
       <div>
         <label
           htmlFor="description"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-ink-muted"
         >
           Description
         </label>
@@ -39,7 +39,7 @@ export function ExpenseForm({ groupId, members, currentUserId }: Props) {
       <div>
         <label
           htmlFor="amount"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-ink-muted"
         >
           Amount (INR)
         </label>
@@ -58,7 +58,7 @@ export function ExpenseForm({ groupId, members, currentUserId }: Props) {
       <div>
         <label
           htmlFor="date"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-ink-muted"
         >
           Date
         </label>
@@ -75,7 +75,7 @@ export function ExpenseForm({ groupId, members, currentUserId }: Props) {
       <div>
         <label
           htmlFor="paidBy"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-ink-muted"
         >
           Paid by
         </label>

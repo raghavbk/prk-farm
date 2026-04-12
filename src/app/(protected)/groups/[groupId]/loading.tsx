@@ -3,25 +3,20 @@ import { ViewTransition } from "react";
 export default function GroupDetailLoading() {
   return (
     <ViewTransition exit="slide-down">
-    <main className="mx-auto max-w-2xl px-4 py-8">
-      <div className="animate-pulse space-y-6">
-        <div>
-          <div className="h-4 w-16 rounded bg-border/50" />
-          <div className="mt-2 h-7 w-44 rounded-lg bg-border/50" />
+    <main className="mx-auto max-w-4xl px-6 py-8">
+      <div>
+        <div className="shimmer h-3 w-16 rounded" />
+        <div className="shimmer mt-2 h-8 w-48 rounded-xl" />
+      </div>
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <div className="space-y-3">
+          <div className="shimmer h-4 w-20 rounded" />
+          <div className="shimmer h-48 rounded-2xl" />
         </div>
-        <div className="space-y-2">
-          <div className="h-4 w-20 rounded bg-border/50" />
-          <div className="h-14 rounded-xl bg-surface-warm" />
-          <div className="h-14 rounded-xl bg-surface-warm" />
-        </div>
-        <div className="space-y-2">
-          <div className="h-4 w-20 rounded bg-border/50" />
-          <div className="h-12 rounded-xl bg-surface-warm" />
-        </div>
-        <div className="space-y-2">
-          <div className="h-4 w-24 rounded bg-border/50" />
-          <div className="h-16 rounded-xl bg-surface-warm" />
-          <div className="h-16 rounded-xl bg-surface-warm" />
+        <div className="space-y-3">
+          <div className="shimmer h-4 w-20 rounded" />
+          <div className="shimmer h-20 rounded-2xl" />
+          <div className="shimmer h-20 rounded-2xl" />
         </div>
       </div>
     </main>

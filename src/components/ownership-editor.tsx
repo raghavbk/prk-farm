@@ -38,14 +38,14 @@ export function OwnershipEditor({ members, onChange }: Props) {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-ink-muted">
           Ownership percentages
         </label>
         {members.length > 0 && (
           <button
             type="button"
             onClick={distributeEqually}
-            className="text-xs text-gray-500 hover:text-gray-700 underline"
+            className="text-xs text-ink-faint hover:text-ink-muted underline"
           >
             Split equally
           </button>
@@ -53,14 +53,14 @@ export function OwnershipEditor({ members, onChange }: Props) {
       </div>
 
       {members.length === 0 ? (
-        <p className="mt-2 text-sm text-gray-400">
+        <p className="mt-2 text-sm text-ink-faint">
           Add members first to set ownership
         </p>
       ) : (
         <div className="mt-2 space-y-2">
           {members.map((m) => (
             <div key={m.userId} className="flex items-center gap-3">
-              <span className="flex-1 text-sm text-gray-700 truncate">
+              <span className="flex-1 text-sm text-ink-muted truncate">
                 {m.displayName}
               </span>
               <div className="flex items-center gap-1">
@@ -71,16 +71,16 @@ export function OwnershipEditor({ members, onChange }: Props) {
                   step="0.01"
                   value={m.ownershipPct || ""}
                   onChange={(e) => handlePctChange(m.userId, e.target.value)}
-                  className="w-20 rounded border border-gray-300 px-2 py-1 text-right text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                  className="w-20 rounded-lg border border-border bg-surface-warm px-2 py-1 text-right text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
-                <span className="text-sm text-gray-500">%</span>
+                <span className="text-sm text-ink-faint">%</span>
               </div>
             </div>
           ))}
 
           <div
             className={`flex justify-end text-sm font-medium ${
-              isValid ? "text-green-600" : "text-red-600"
+              isValid ? "text-success" : "text-danger"
             }`}
           >
             Total: {total.toFixed(2)}%{" "}
