@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveTenantId } from "@/lib/tenant";
 import { redirect } from "next/navigation";
+import { ViewTransition } from "react";
 import { switchTenant } from "@/actions/tenant";
 import { CreateTenantForm } from "./create-tenant-form";
 
@@ -25,6 +26,7 @@ export default async function TenantsPage() {
     })) ?? [];
 
   return (
+    <ViewTransition enter="fade-in" exit="fade-out" default="none">
     <main className="mx-auto max-w-lg px-4 py-8">
       <h1 className="text-xl font-bold text-gray-900">Your Farms</h1>
       <p className="mt-1 text-sm text-gray-600">
@@ -68,5 +70,6 @@ export default async function TenantsPage() {
 
       <CreateTenantForm />
     </main>
+    </ViewTransition>
   );
 }

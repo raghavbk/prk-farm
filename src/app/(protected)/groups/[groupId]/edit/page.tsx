@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getActiveTenantId } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
+import { ViewTransition } from "react";
 import { EditGroupForm } from "./edit-group-form";
 
 export default async function EditGroupPage({
@@ -52,6 +53,11 @@ export default async function EditGroupPage({
   }));
 
   return (
+    <ViewTransition
+      enter={{ "nav-forward": "slide-from-right", "nav-back": "slide-from-left", default: "none" }}
+      exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
+      default="none"
+    >
     <main className="mx-auto max-w-lg px-4 py-8">
       <h1 className="text-xl font-bold text-gray-900">Edit Group</h1>
       <EditGroupForm
@@ -60,5 +66,6 @@ export default async function EditGroupPage({
         existingMembers={existingMembers}
       />
     </main>
+    </ViewTransition>
   );
 }

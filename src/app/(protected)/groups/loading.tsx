@@ -1,5 +1,8 @@
+import { ViewTransition } from "react";
+
 export default function GroupsLoading() {
   return (
+    <ViewTransition exit="slide-down">
     <main className="mx-auto max-w-lg px-4 py-8">
       <div className="animate-pulse space-y-4">
         <div className="flex items-center justify-between">
@@ -11,5 +14,6 @@ export default function GroupsLoading() {
         <div className="h-16 rounded-lg bg-gray-100" />
       </div>
     </main>
+    </ViewTransition>
   );
 }

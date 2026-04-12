@@ -3,6 +3,7 @@ import { getActiveTenantId } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { ViewTransition } from "react";
 import { DashboardSummary } from "@/components/dashboard-summary";
 import { RecentExpenses } from "@/components/recent-expenses";
 
@@ -66,6 +67,11 @@ export default async function DashboardPage() {
   }
 
   return (
+    <ViewTransition
+      enter={{ "nav-forward": "slide-from-right", "nav-back": "slide-from-left", default: "none" }}
+      exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
+      default="none"
+    >
     <main className="mx-auto max-w-lg px-4 py-8">
       <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
 
@@ -106,7 +112,8 @@ export default async function DashboardPage() {
               <li key={g.id}>
                 <Link
                   href={`/groups/${g.id}`}
-                  className="block rounded-lg border border-gray-200 px-4 py-3 hover:bg-gray-50 transition-colors"
+                  transitionTypes={["nav-forward"]}
+                  className="block rounded-lg border border-gray-200 px-4 py-3 hover:bg-gray-50 transition-colors card-hover"
                 >
                   <span className="font-medium text-gray-900">{g.name}</span>
                   <span className="ml-2 text-xs text-gray-400">
@@ -129,5 +136,6 @@ export default async function DashboardPage() {
         </div>
       </section>
     </main>
+    </ViewTransition>
   );
 }

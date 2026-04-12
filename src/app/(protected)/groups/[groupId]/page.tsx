@@ -3,6 +3,7 @@ import { getActiveTenantId } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import { ViewTransition } from "react";
 import { formatINR } from "@/lib/format";
 import { GroupBalances } from "@/components/group-balances";
 
@@ -54,11 +55,17 @@ export default async function GroupDetailPage({
   const isTenantOwner = membership?.role === "owner";
 
   return (
+    <ViewTransition
+      enter={{ "nav-forward": "slide-from-right", "nav-back": "slide-from-left", default: "none" }}
+      exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
+      default="none"
+    >
     <main className="mx-auto max-w-lg px-4 py-8">
       <div className="flex items-center justify-between">
         <div>
           <Link
             href="/groups"
+            transitionTypes={["nav-back"]}
             className="text-sm text-gray-500 hover:text-gray-700"
           >
             &larr; Groups
@@ -68,7 +75,8 @@ export default async function GroupDetailPage({
         {isTenantOwner && (
           <Link
             href={`/groups/${groupId}/edit`}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            transitionTypes={["nav-forward"]}
+            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors btn-press"
           >
             Edit
           </Link>
@@ -117,7 +125,8 @@ export default async function GroupDetailPage({
           </h2>
           <Link
             href={`/groups/${groupId}/expenses/new`}
-            className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+            transitionTypes={["nav-forward"]}
+            className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors btn-press"
           >
             Add Expense
           </Link>
@@ -149,6 +158,7 @@ export default async function GroupDetailPage({
                       {canEdit && (
                         <Link
                           href={`/groups/${groupId}/expenses/${e.id}/edit`}
+                          transitionTypes={["nav-forward"]}
                           className="text-xs text-gray-500 hover:text-gray-700"
                         >
                           Edit
@@ -163,5 +173,6 @@ export default async function GroupDetailPage({
         )}
       </section>
     </main>
+    </ViewTransition>
   );
 }

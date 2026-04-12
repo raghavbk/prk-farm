@@ -101,7 +101,7 @@ export function ExpenseForm({ groupId, members, currentUserId }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:opacity-50"
+        className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:opacity-50 btn-press"
       >
         {pending ? "Adding..." : "Add Expense"}
       </button>

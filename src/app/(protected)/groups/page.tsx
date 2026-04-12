@@ -3,6 +3,7 @@ import { getActiveTenantId } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { ViewTransition } from "react";
 
 export default async function GroupsPage() {
   const user = await getCurrentUser();
@@ -20,12 +21,18 @@ export default async function GroupsPage() {
     .order("created_at", { ascending: false });
 
   return (
+    <ViewTransition
+      enter={{ "nav-forward": "slide-from-right", "nav-back": "slide-from-left", default: "none" }}
+      exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
+      default="none"
+    >
     <main className="mx-auto max-w-lg px-4 py-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">Groups</h1>
         <Link
           href="/groups/new"
-          className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+          transitionTypes={["nav-forward"]}
+          className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors btn-press"
         >
           New Group
         </Link>
@@ -43,7 +50,8 @@ export default async function GroupsPage() {
             <li key={group.id}>
               <Link
                 href={`/groups/${group.id}`}
-                className="block rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
+                transitionTypes={["nav-forward"]}
+                className="block rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors card-hover"
               >
                 <span className="font-medium text-gray-900">{group.name}</span>
                 <span className="ml-2 text-xs text-gray-400">
@@ -55,5 +63,6 @@ export default async function GroupsPage() {
         </ul>
       )}
     </main>
+    </ViewTransition>
   );
 }

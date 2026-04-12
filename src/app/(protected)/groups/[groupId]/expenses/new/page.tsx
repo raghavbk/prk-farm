@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
+import { ViewTransition } from "react";
 import { ExpenseForm } from "./expense-form";
 
 export default async function NewExpensePage({
@@ -36,6 +37,11 @@ export default async function NewExpensePage({
   }));
 
   return (
+    <ViewTransition
+      enter={{ "nav-forward": "slide-from-right", "nav-back": "slide-from-left", default: "none" }}
+      exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
+      default="none"
+    >
     <main className="mx-auto max-w-lg px-4 py-8">
       <h1 className="text-xl font-bold text-gray-900">Add Expense</h1>
       <p className="mt-1 text-sm text-gray-600">to {group.name}</p>
@@ -45,5 +51,6 @@ export default async function NewExpensePage({
         currentUserId={user.id}
       />
     </main>
+    </ViewTransition>
   );
 }

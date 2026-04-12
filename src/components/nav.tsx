@@ -3,7 +3,7 @@ import { TenantSwitcher } from "./tenant-switcher";
 
 export function Nav() {
   return (
-    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
+    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white" style={{ viewTransitionName: "site-nav" }}>
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <Link href="/" className="text-sm font-bold text-gray-900">

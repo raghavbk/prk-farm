@@ -1,5 +1,8 @@
+import { ViewTransition } from "react";
+
 export default function GroupDetailLoading() {
   return (
+    <ViewTransition exit="slide-down">
     <main className="mx-auto max-w-lg px-4 py-8">
       <div className="animate-pulse space-y-6">
         <div>
@@ -22,5 +25,6 @@ export default function GroupDetailLoading() {
         </div>
       </div>
     </main>
+    </ViewTransition>
   );
 }
