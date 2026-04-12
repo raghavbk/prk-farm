@@ -3,25 +3,38 @@ import { TenantSwitcher } from "./tenant-switcher";
 
 export function Nav() {
   return (
-    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white" style={{ viewTransitionName: "site-nav" }}>
+    <header
+      className="sticky top-0 z-40 border-b border-border bg-surface/80 backdrop-blur-md"
+      style={{ viewTransitionName: "site-nav" }}
+    >
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-sm font-bold text-gray-900">
-            Farm Ledger
+        <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-olive text-surface">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
+            </div>
+            <span className="font-display text-sm font-semibold text-ink">
+              Farm Ledger
+            </span>
           </Link>
+          <div className="h-4 w-px bg-border" />
           <TenantSwitcher />
         </div>
-        <nav className="flex items-center gap-3">
+        <nav className="flex items-center gap-1">
           <Link
             href="/groups"
-            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            className="rounded-lg px-3 py-1.5 text-sm text-ink-muted hover:text-ink hover:bg-surface-warm transition-colors"
           >
             Groups
           </Link>
           <form action="/auth/signout" method="post">
             <button
               type="submit"
-              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              className="rounded-lg px-3 py-1.5 text-sm text-ink-faint hover:text-ink-muted hover:bg-surface-warm transition-colors"
             >
               Sign Out
             </button>

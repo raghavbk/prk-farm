@@ -28,37 +28,37 @@ export default async function TenantsPage() {
   return (
     <ViewTransition enter="fade-in" exit="fade-out" default="none">
     <main className="mx-auto max-w-lg px-4 py-8">
-      <h1 className="text-xl font-bold text-gray-900">Your Farms</h1>
-      <p className="mt-1 text-sm text-gray-600">
+      <h1 className="font-display text-2xl font-semibold text-ink">Your Farms</h1>
+      <p className="mt-2 text-sm text-ink-muted">
         Choose a farm to work in, or create a new one.
       </p>
 
       {tenants.length === 0 ? (
-        <div className="mt-8 rounded-lg border-2 border-dashed border-gray-300 p-8 text-center">
-          <p className="text-sm text-gray-500">
+        <div className="mt-8 rounded-xl border-2 border-dashed border-border py-10 text-center">
+          <p className="text-sm text-ink-faint">
             You don&apos;t belong to any farms yet. Create one to get started.
           </p>
         </div>
       ) : (
-        <ul className="mt-6 space-y-3">
+        <ul className="mt-6 space-y-2">
           {tenants.map((tenant) => (
             <li key={tenant.id}>
               <form action={switchTenant.bind(null, tenant.id)}>
                 <button
                   type="submit"
-                  className={`w-full rounded-lg border p-4 text-left transition-colors hover:bg-gray-50 ${
+                  className={`w-full card-surface card-hover p-4 text-left ${
                     tenant.id === activeTenantId
-                      ? "border-gray-900 bg-gray-50"
-                      : "border-gray-200"
+                      ? "!border-olive bg-olive-wash"
+                      : ""
                   }`}
                 >
-                  <span className="font-medium text-gray-900">
+                  <span className="font-medium text-ink">
                     {tenant.name}
                   </span>
                   {tenant.id === activeTenantId && (
-                    <span className="ml-2 text-xs text-gray-500">Active</span>
+                    <span className="ml-2 rounded-full bg-olive/10 px-2 py-0.5 text-xs font-medium text-olive">Active</span>
                   )}
-                  <span className="ml-2 text-xs text-gray-400 capitalize">
+                  <span className="ml-2 text-xs text-ink-faint capitalize">
                     {tenant.role}
                   </span>
                 </button>

@@ -13,7 +13,6 @@ export async function GroupBalances({ groupId }: Props) {
     .select("*")
     .eq("group_id", groupId);
 
-  // Build lookup for display names
   const userIds = new Set<string>();
   (balances ?? []).forEach((b) => {
     userIds.add(b.creditor_id);
@@ -30,25 +29,31 @@ export async function GroupBalances({ groupId }: Props) {
   );
 
   if (!balances || balances.length === 0) {
-    return <p className="text-sm text-gray-400">No expenses yet</p>;
+    return (
+      <div className="rounded-xl border-2 border-dashed border-border py-6 text-center">
+        <p className="text-sm text-ink-faint">No expenses yet</p>
+      </div>
+    );
   }
 
   return (
-    <ul className="space-y-2">
+    <div className="space-y-2">
       {balances.map((b, i) => (
-        <li key={i} className="rounded-lg bg-gray-50 px-3 py-2 text-sm">
-          <span className="font-medium">
-            {nameMap.get(b.debtor_id) ?? "Unknown"}
-          </span>{" "}
-          owes{" "}
-          <span className="font-medium">
-            {nameMap.get(b.creditor_id) ?? "Unknown"}
-          </span>{" "}
-          <span className="font-bold text-gray-900">
+        <div key={i} className="card-surface flex items-center justify-between px-4 py-3">
+          <div className="text-sm">
+            <span className="font-medium text-ink">
+              {nameMap.get(b.debtor_id) ?? "Unknown"}
+            </span>
+            <span className="mx-1.5 text-ink-faint">&rarr;</span>
+            <span className="font-medium text-ink">
+              {nameMap.get(b.creditor_id) ?? "Unknown"}
+            </span>
+          </div>
+          <span className="font-display text-sm font-semibold text-terra">
             {formatINR(b.net_amount)}
           </span>
-        </li>
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }

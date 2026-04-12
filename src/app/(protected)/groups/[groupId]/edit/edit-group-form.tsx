@@ -58,16 +58,16 @@ export function EditGroupForm({
             name="name"
             required
             defaultValue={groupName}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            className="mt-1 w-full input-warm"
           />
         </div>
         {nameState?.error && (
-          <p className="text-sm text-red-600">{nameState.error}</p>
+          <p className="text-sm text-terra">{nameState.error}</p>
         )}
         <button
           type="submit"
           disabled={namePending}
-          className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:opacity-50"
+          className="btn-primary btn-press text-sm"
         >
           {namePending ? "Saving..." : "Update Name"}
         </button>
@@ -88,12 +88,12 @@ export function EditGroupForm({
         <OwnershipEditor members={members} onChange={setMembers} />
 
         {ownerState?.error && (
-          <p className="text-sm text-red-600">{ownerState.error}</p>
+          <p className="text-sm text-terra">{ownerState.error}</p>
         )}
         <button
           type="submit"
           disabled={ownerPending || !isOwnershipValid}
-          className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:opacity-50 btn-press"
+          className="w-full btn-primary btn-press"
         >
           {ownerPending ? "Saving..." : "Update Members & Ownership"}
         </button>

@@ -10,34 +10,33 @@ export function DashboardSummary({ totalYouOwe, totalOwedToYou }: Props) {
 
   return (
     <div className="grid grid-cols-2 gap-3">
-      <div className="rounded-lg bg-red-50 p-4">
-        <p className="text-xs font-medium text-red-600 uppercase tracking-wide">
+      <div className="card-surface p-4" style={{ background: "var(--color-terra-wash)" }}>
+        <p className="section-label" style={{ color: "var(--color-terra)" }}>
           You Owe
         </p>
-        <p className="mt-1 text-lg font-bold text-red-700">
+        <p className="mt-1.5 font-display text-xl font-semibold" style={{ color: "var(--color-terra)" }}>
           {formatINR(totalYouOwe)}
         </p>
       </div>
-      <div className="rounded-lg bg-green-50 p-4">
-        <p className="text-xs font-medium text-green-600 uppercase tracking-wide">
+      <div className="card-surface p-4" style={{ background: "var(--color-sage-wash)" }}>
+        <p className="section-label" style={{ color: "var(--color-sage)" }}>
           Owed to You
         </p>
-        <p className="mt-1 text-lg font-bold text-green-700">
+        <p className="mt-1.5 font-display text-xl font-semibold" style={{ color: "var(--color-sage)" }}>
           {formatINR(totalOwedToYou)}
         </p>
       </div>
-      <div className="col-span-2 rounded-lg bg-gray-50 p-4 text-center">
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-          Net Balance
-        </p>
+      <div className="col-span-2 card-surface p-5 text-center" style={{ background: "var(--color-amber-wash)" }}>
+        <p className="section-label">Net Balance</p>
         <p
-          className={`mt-1 text-lg font-bold ${
-            net >= 0 ? "text-green-700" : "text-red-700"
-          }`}
+          className="mt-2 font-display text-2xl font-semibold"
+          style={{ color: net >= 0 ? "var(--color-sage)" : "var(--color-terra)" }}
         >
           {net >= 0 ? "+" : ""}
           {formatINR(Math.abs(net))}
-          {net < 0 ? " (you owe)" : net > 0 ? " (owed to you)" : ""}
+        </p>
+        <p className="mt-1 text-xs text-ink-faint">
+          {net < 0 ? "you owe overall" : net > 0 ? "owed to you overall" : "all settled"}
         </p>
       </div>
     </div>

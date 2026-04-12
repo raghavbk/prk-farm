@@ -28,33 +28,33 @@ export default async function GroupsPage() {
     >
     <main className="mx-auto max-w-lg px-4 py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">Groups</h1>
+        <h1 className="font-display text-2xl font-semibold text-ink">Groups</h1>
         <Link
           href="/groups/new"
           transitionTypes={["nav-forward"]}
-          className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors btn-press"
+          className="btn-primary btn-press text-sm"
         >
           New Group
         </Link>
       </div>
 
       {!groups || groups.length === 0 ? (
-        <div className="mt-8 rounded-lg border-2 border-dashed border-gray-300 p-8 text-center">
-          <p className="text-sm text-gray-500">
+        <div className="mt-8 rounded-xl border-2 border-dashed border-border py-10 text-center">
+          <p className="text-sm text-ink-faint">
             No groups yet. Create one to start tracking expenses.
           </p>
         </div>
       ) : (
-        <ul className="mt-6 space-y-3">
+        <ul className="mt-6 space-y-2">
           {groups.map((group) => (
             <li key={group.id}>
               <Link
                 href={`/groups/${group.id}`}
                 transitionTypes={["nav-forward"]}
-                className="block rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors card-hover"
+                className="card-surface card-hover block px-4 py-3.5"
               >
-                <span className="font-medium text-gray-900">{group.name}</span>
-                <span className="ml-2 text-xs text-gray-400">
+                <span className="font-medium text-ink">{group.name}</span>
+                <span className="ml-2 text-xs text-ink-faint">
                   {group.group_members?.length ?? 0} members
                 </span>
               </Link>

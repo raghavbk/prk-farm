@@ -88,7 +88,7 @@ export function MemberSearch({ members, onChange }: Props) {
           value={query}
           onChange={(e) => handleQueryChange(e.target.value)}
           placeholder="Search by email..."
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+          className="w-full input-warm"
         />
         {(results.length > 0 || searching || noResults) && (
           <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dropdown-enter">

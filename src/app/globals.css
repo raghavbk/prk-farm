@@ -1,7 +1,168 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-fraunces);
+
+  /* Vibrant palette — warm cream base with punchy accents */
+  --color-surface: #fffbf5;
+  --color-surface-warm: #fef5eb;
+  --color-surface-raised: #ffffff;
+  --color-ink: #1a1a2e;
+  --color-ink-muted: #5c5c7a;
+  --color-ink-faint: #9e9eb8;
+  --color-border: #ebe5dc;
+  --color-border-strong: #d4cbc0;
+
+  /* Primary accent — rich emerald green */
+  --color-olive: #0d9b5c;
+  --color-olive-light: #10b96d;
+  --color-olive-wash: #e8fbf1;
+
+  /* Currency — vivid marigold */
+  --color-amber: #e08a00;
+  --color-amber-wash: #fff7e6;
+
+  /* Owe — punchy coral red */
+  --color-terra: #e5453a;
+  --color-terra-wash: #fff0ef;
+
+  /* Receive — bright teal */
+  --color-sage: #0ba375;
+  --color-sage-wash: #e6faf3;
+}
+
+/* ============================================================
+   Typography
+   ============================================================ */
+
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+}
+
+h1, h2 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+}
+
+/* ============================================================
+   Grain Texture Overlay
+   ============================================================ */
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px;
+}
+
+/* ============================================================
+   Component Tokens
+   ============================================================ */
+
+/* Cards */
+.card-surface {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(44, 36, 24, 0.04), 0 4px 12px rgba(44, 36, 24, 0.02);
+}
+
+/* Warm input style */
+.input-warm {
+  background: var(--color-surface-raised);
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--color-ink);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.input-warm:focus {
+  outline: none;
+  border-color: var(--color-olive);
+  box-shadow: 0 0 0 3px rgba(74, 93, 58, 0.1);
+}
+.input-warm::placeholder {
+  color: var(--color-ink-faint);
+}
+
+/* Primary button */
+.btn-primary {
+  background: var(--color-olive);
+  color: #faf8f4;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  transition: background-color 200ms ease, transform 300ms ease-out;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-olive-light);
+}
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.97);
+  transition: transform 100ms ease-out;
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Secondary / outline button */
+.btn-secondary {
+  background: transparent;
+  color: var(--color-ink);
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: border-color 200ms ease, background-color 200ms ease, transform 300ms ease-out;
+}
+.btn-secondary:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-warm);
+}
+.btn-secondary:active {
+  transform: scale(0.97);
+  transition: transform 100ms ease-out;
+}
+
+/* Danger button */
+.btn-danger {
+  background: transparent;
+  color: var(--color-terra);
+  border: 1.5px solid rgba(176, 74, 50, 0.3);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: background-color 200ms ease, transform 300ms ease-out;
+}
+.btn-danger:hover {
+  background: var(--color-terra-wash);
+}
+.btn-danger:active {
+  transform: scale(0.97);
+  transition: transform 100ms ease-out;
+}
+
+/* Section label */
+.section-label {
+  font-family: var(--font-dm-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
 }
 
 /* ============================================================
@@ -13,8 +174,6 @@
   --duration-enter: 210ms;
   --duration-move: 350ms;
 }
-
-/* Shared keyframes */
 
 @keyframes fade {
   from { filter: blur(3px); opacity: 0; }
@@ -31,16 +190,12 @@
   to { transform: translateY(0); }
 }
 
-/* Fade */
-
 ::view-transition-old(.fade-out) {
   animation: var(--duration-exit) ease-in fade reverse;
 }
 ::view-transition-new(.fade-in) {
   animation: var(--duration-enter) ease-out var(--duration-exit) both fade;
 }
-
-/* Slide vertical (Suspense reveals) */
 
 ::view-transition-old(.slide-down) {
   animation:
@@ -52,8 +207,6 @@
     var(--duration-enter) ease-in var(--duration-exit) both fade,
     var(--duration-move) ease-in both slide-y;
 }
-
-/* Directional navigation (forward/back) */
 
 ::view-transition-new(.slide-from-right) {
   --slide-offset: 60px;
@@ -81,8 +234,6 @@
     var(--duration-move) ease-in-out both slide reverse;
 }
 
-/* Persistent nav isolation */
-
 ::view-transition-group(site-nav) {
   animation: none;
   z-index: 100;
@@ -98,7 +249,6 @@
    Micro-Animations
    ============================================================ */
 
-/* Button press */
 .btn-press {
   transition: transform 300ms ease-out, background-color 200ms ease;
 }
@@ -107,29 +257,22 @@
   transition: transform 100ms ease-out;
 }
 
-/* Card/list item hover lift */
 .card-hover {
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease;
 }
 .card-hover:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-color: var(--color-border-strong);
+  box-shadow: 0 4px 16px rgba(44, 36, 24, 0.06);
 }
 
-/* Dropdown appear */
 .dropdown-enter {
   animation: dropdown-in 150ms ease-out;
 }
 
 @keyframes dropdown-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ============================================================
@@ -144,8 +287,7 @@
     animation-delay: 0s !important;
   }
 
-  .btn-press,
-  .card-hover {
+  .btn-press, .btn-primary, .btn-secondary, .btn-danger, .card-hover {
     transition: none !important;
   }
 

@@ -14,10 +14,7 @@ export function LoginButton() {
   }
 
   return (
-    <button
-      onClick={handleLogin}
-      className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-800 transition-colors btn-press"
-    >
+    <button onClick={handleLogin} className="btn-primary w-full btn-press">
       Sign in with Google
     </button>
   );

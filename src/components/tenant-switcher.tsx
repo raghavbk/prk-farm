@@ -25,11 +25,11 @@ export async function TenantSwitcher() {
   return (
     <Link
       href="/tenants"
-      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-ink-muted hover:text-ink hover:bg-surface-warm transition-colors"
     >
-      <span className="font-medium truncate max-w-[150px]">{tenantName}</span>
+      <span className="font-medium truncate max-w-[140px]">{tenantName}</span>
       <svg
-        className="h-4 w-4 shrink-0"
+        className="h-3.5 w-3.5 shrink-0 text-ink-faint"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={2}

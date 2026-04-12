@@ -10,10 +10,10 @@ export function CreateTenantForm() {
   );
 
   return (
-    <form action={formAction} className="mt-8">
+    <form action={formAction} className="mt-10">
       <label
         htmlFor="name"
-        className="block text-sm font-medium text-gray-700"
+        className="section-label"
       >
         Create a new farm
       </label>
@@ -24,18 +24,18 @@ export function CreateTenantForm() {
           name="name"
           required
           placeholder="e.g., Mango Grove Farm"
-          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+          className="input-warm flex-1"
         />
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:opacity-50"
+          className="btn-primary btn-press"
         >
           {pending ? "Creating..." : "Create"}
         </button>
       </div>
       {state?.error && (
-        <p className="mt-2 text-sm text-red-600">{state.error}</p>
+        <p className="mt-2 text-sm text-terra">{state.error}</p>
       )}
     </form>
   );

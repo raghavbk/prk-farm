@@ -66,110 +66,101 @@ export default async function GroupDetailPage({
           <Link
             href="/groups"
             transitionTypes={["nav-back"]}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-xs font-medium text-ink-faint hover:text-ink-muted transition-colors"
           >
             &larr; Groups
           </Link>
-          <h1 className="text-xl font-bold text-gray-900">{group.name}</h1>
+          <h1 className="mt-1 font-display text-2xl font-semibold text-ink">{group.name}</h1>
         </div>
         {isTenantOwner && (
           <Link
             href={`/groups/${groupId}/edit`}
             transitionTypes={["nav-forward"]}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors btn-press"
+            className="btn-secondary btn-press"
           >
             Edit
           </Link>
         )}
       </div>
 
-      {/* Members & Ownership */}
-      <section className="mt-6">
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-          Members
-        </h2>
-        <ul className="mt-2 divide-y divide-gray-100">
+      <section className="mt-8">
+        <h2 className="section-label">Members</h2>
+        <div className="mt-2 card-surface divide-y divide-border overflow-hidden">
           {(members ?? []).map((m) => (
-            <li key={m.user_id} className="flex items-center justify-between py-2">
+            <div key={m.user_id} className="flex items-center justify-between px-4 py-3">
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-ink">
                   {(m.profiles as unknown as { display_name: string })?.display_name}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-ink-faint">
                   {(m.profiles as unknown as { email: string })?.email}
                 </p>
               </div>
-              <span className="text-sm font-medium text-gray-700">
+              <span className="font-display text-sm font-semibold text-olive">
                 {m.ownership_pct}%
               </span>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       </section>
 
-      {/* Balances */}
       <section className="mt-8">
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-          Balances
-        </h2>
+        <h2 className="section-label">Balances</h2>
         <div className="mt-2">
           <GroupBalances groupId={groupId} />
         </div>
       </section>
 
-      {/* Expenses */}
       <section className="mt-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-            Expenses
-          </h2>
+          <h2 className="section-label">Expenses</h2>
           <Link
             href={`/groups/${groupId}/expenses/new`}
             transitionTypes={["nav-forward"]}
-            className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors btn-press"
+            className="btn-primary btn-press text-sm"
           >
             Add Expense
           </Link>
         </div>
         {!expenses || expenses.length === 0 ? (
-          <p className="mt-2 text-sm text-gray-400">No expenses yet</p>
+          <div className="mt-3 rounded-xl border-2 border-dashed border-border py-6 text-center">
+            <p className="text-sm text-ink-faint">No expenses yet</p>
+          </div>
         ) : (
-          <ul className="mt-2 divide-y divide-gray-100">
+          <div className="mt-3 card-surface divide-y divide-border overflow-hidden">
             {expenses.map((e) => {
               const canEdit = e.created_by === user.id || isTenantOwner;
               return (
-                <li key={e.id} className="py-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {e.description}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Paid by{" "}
-                        {(e.profiles as unknown as { display_name: string })
-                          ?.display_name ?? "Unknown"}{" "}
-                        on {e.date}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-gray-900">
-                        {formatINR(e.amount)}
-                      </p>
-                      {canEdit && (
-                        <Link
-                          href={`/groups/${groupId}/expenses/${e.id}/edit`}
-                          transitionTypes={["nav-forward"]}
-                          className="text-xs text-gray-500 hover:text-gray-700"
-                        >
-                          Edit
-                        </Link>
-                      )}
-                    </div>
+                <div key={e.id} className="flex items-start justify-between px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-ink">
+                      {e.description}
+                    </p>
+                    <p className="mt-0.5 text-xs text-ink-faint">
+                      Paid by{" "}
+                      {(e.profiles as unknown as { display_name: string })
+                        ?.display_name ?? "Unknown"}{" "}
+                      &middot; {e.date}
+                    </p>
                   </div>
-                </li>
+                  <div className="text-right">
+                    <p className="font-display text-sm font-semibold text-amber">
+                      {formatINR(e.amount)}
+                    </p>
+                    {canEdit && (
+                      <Link
+                        href={`/groups/${groupId}/expenses/${e.id}/edit`}
+                        transitionTypes={["nav-forward"]}
+                        className="text-xs text-ink-faint hover:text-olive transition-colors"
+                      >
+                        Edit
+                      </Link>
+                    )}
+                  </div>
+                </div>
               );
             })}
-          </ul>
+          </div>
         )}
       </section>
     </main>

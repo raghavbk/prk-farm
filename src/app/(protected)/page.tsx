@@ -73,9 +73,8 @@ export default async function DashboardPage() {
       default="none"
     >
     <main className="mx-auto max-w-lg px-4 py-8">
-      <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+      <h1 className="font-display text-2xl font-semibold text-ink">Dashboard</h1>
 
-      {/* Summary Cards */}
       <section className="mt-6">
         <DashboardSummary
           totalYouOwe={Number(totals.total_you_owe)}
@@ -83,24 +82,22 @@ export default async function DashboardPage() {
         />
       </section>
 
-      {/* Groups */}
-      <section className="mt-8">
+      <section className="mt-10">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-            Your Groups
-          </h2>
+          <h2 className="section-label">Your Groups</h2>
           <Link
             href="/groups/new"
-            className="text-sm text-gray-500 hover:text-gray-700"
+            transitionTypes={["nav-forward"]}
+            className="text-sm font-medium text-olive hover:text-olive-light transition-colors"
           >
             + New
           </Link>
         </div>
         {!groups || groups.length === 0 ? (
-          <div className="mt-3 rounded-lg border-2 border-dashed border-gray-300 p-6 text-center">
-            <p className="text-sm text-gray-500">
+          <div className="mt-3 rounded-xl border-2 border-dashed border-border py-8 text-center">
+            <p className="text-sm text-ink-faint">
               No groups yet.{" "}
-              <Link href="/groups/new" className="font-medium text-gray-900 underline">
+              <Link href="/groups/new" transitionTypes={["nav-forward"]} className="font-medium text-olive underline underline-offset-2">
                 Create one
               </Link>{" "}
               to start tracking expenses.
@@ -113,10 +110,10 @@ export default async function DashboardPage() {
                 <Link
                   href={`/groups/${g.id}`}
                   transitionTypes={["nav-forward"]}
-                  className="block rounded-lg border border-gray-200 px-4 py-3 hover:bg-gray-50 transition-colors card-hover"
+                  className="card-surface card-hover block px-4 py-3.5"
                 >
-                  <span className="font-medium text-gray-900">{g.name}</span>
-                  <span className="ml-2 text-xs text-gray-400">
+                  <span className="font-medium text-ink">{g.name}</span>
+                  <span className="ml-2 text-xs text-ink-faint">
                     {g.group_members?.length ?? 0} members
                   </span>
                 </Link>
@@ -126,11 +123,8 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      {/* Recent Expenses */}
-      <section className="mt-8">
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-          Recent Expenses
-        </h2>
+      <section className="mt-10">
+        <h2 className="section-label">Recent Expenses</h2>
         <div className="mt-3">
           <RecentExpenses expenses={recentExpenses} />
         </div>
