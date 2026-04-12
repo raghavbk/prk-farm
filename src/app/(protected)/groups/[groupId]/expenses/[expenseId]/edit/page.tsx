@@ -42,7 +42,7 @@ export default async function EditExpensePage({
       exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
       default="none"
     >
-    <main className="mx-auto max-w-lg px-4 py-8">
+    <main className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="text-xl font-bold text-gray-900">Edit Expense</h1>
       <EditExpenseForm
         expense={expense}

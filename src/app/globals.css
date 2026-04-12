@@ -4,32 +4,48 @@
   --font-sans: var(--font-dm-sans);
   --font-display: var(--font-fraunces);
 
-  /* Vibrant palette — warm cream base with punchy accents */
-  --color-surface: #fffbf5;
-  --color-surface-warm: #fef5eb;
+  /* Modern fintech palette */
+  --color-surface: #f8fafc;
+  --color-surface-warm: #f1f5f9;
   --color-surface-raised: #ffffff;
-  --color-ink: #1a1a2e;
-  --color-ink-muted: #5c5c7a;
-  --color-ink-faint: #9e9eb8;
-  --color-border: #ebe5dc;
-  --color-border-strong: #d4cbc0;
+  --color-ink: #0f172a;
+  --color-ink-muted: #64748b;
+  --color-ink-faint: #94a3b8;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
 
-  /* Primary accent — rich emerald green */
-  --color-olive: #0d9b5c;
-  --color-olive-light: #10b96d;
-  --color-olive-wash: #e8fbf1;
+  /* Primary — vivid indigo-violet */
+  --color-primary: #6366f1;
+  --color-primary-light: #818cf8;
+  --color-primary-dark: #4f46e5;
+  --color-primary-wash: #eef2ff;
 
-  /* Currency — vivid marigold */
-  --color-amber: #e08a00;
-  --color-amber-wash: #fff7e6;
+  /* Success — emerald */
+  --color-success: #10b981;
+  --color-success-wash: #ecfdf5;
 
-  /* Owe — punchy coral red */
-  --color-terra: #e5453a;
-  --color-terra-wash: #fff0ef;
+  /* Warning — amber */
+  --color-warning: #f59e0b;
+  --color-warning-wash: #fffbeb;
 
-  /* Receive — bright teal */
-  --color-sage: #0ba375;
-  --color-sage-wash: #e6faf3;
+  /* Danger — rose */
+  --color-danger: #f43f5e;
+  --color-danger-wash: #fff1f2;
+
+  /* Currency — rich teal */
+  --color-currency: #0d9488;
+  --color-currency-wash: #f0fdfa;
+
+  /* Aliases used by existing components */
+  --color-olive: var(--color-primary);
+  --color-olive-light: var(--color-primary-light);
+  --color-olive-wash: var(--color-primary-wash);
+  --color-amber: var(--color-warning);
+  --color-amber-wash: var(--color-warning-wash);
+  --color-terra: var(--color-danger);
+  --color-terra-wash: var(--color-danger-wash);
+  --color-sage: var(--color-success);
+  --color-sage-wash: var(--color-success-wash);
 }
 
 /* ============================================================
@@ -47,38 +63,37 @@ h1, h2 {
 }
 
 /* ============================================================
-   Grain Texture Overlay
+   Component Tokens — Modern Glass Design
    ============================================================ */
 
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px;
-}
-
-/* ============================================================
-   Component Tokens
-   ============================================================ */
-
-/* Cards */
 .card-surface {
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(44, 36, 24, 0.04), 0 4px 12px rgba(44, 36, 24, 0.02);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 16px rgba(0, 0, 0, 0.02);
 }
 
-/* Warm input style */
+.card-gradient {
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.card-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(244,63,94,0.15), rgba(245,158,11,0.2));
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
 .input-warm {
   background: var(--color-surface-raised);
   border: 1.5px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 10px 14px;
   font-size: 14px;
   color: var(--color-ink);
@@ -86,26 +101,26 @@ body::after {
 }
 .input-warm:focus {
   outline: none;
-  border-color: var(--color-olive);
-  box-shadow: 0 0 0 3px rgba(74, 93, 58, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 .input-warm::placeholder {
   color: var(--color-ink-faint);
 }
 
-/* Primary button */
 .btn-primary {
-  background: var(--color-olive);
-  color: #faf8f4;
-  border-radius: 10px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  border-radius: 12px;
   padding: 12px 20px;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.01em;
-  transition: background-color 200ms ease, transform 300ms ease-out;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+  transition: box-shadow 200ms ease, transform 300ms ease-out, opacity 200ms ease;
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-olive-light);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
 }
 .btn-primary:active:not(:disabled) {
   transform: scale(0.97);
@@ -116,12 +131,11 @@ body::after {
   cursor: not-allowed;
 }
 
-/* Secondary / outline button */
 .btn-secondary {
-  background: transparent;
+  background: var(--color-surface-raised);
   color: var(--color-ink);
   border: 1.5px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 8px 16px;
   font-weight: 500;
   font-size: 14px;
@@ -136,33 +150,75 @@ body::after {
   transition: transform 100ms ease-out;
 }
 
-/* Danger button */
 .btn-danger {
   background: transparent;
-  color: var(--color-terra);
-  border: 1.5px solid rgba(176, 74, 50, 0.3);
-  border-radius: 10px;
+  color: var(--color-danger);
+  border: 1.5px solid rgba(244, 63, 94, 0.3);
+  border-radius: 12px;
   padding: 12px 20px;
   font-weight: 500;
   font-size: 14px;
   transition: background-color 200ms ease, transform 300ms ease-out;
 }
 .btn-danger:hover {
-  background: var(--color-terra-wash);
+  background: var(--color-danger-wash);
 }
 .btn-danger:active {
   transform: scale(0.97);
   transition: transform 100ms ease-out;
 }
 
-/* Section label */
 .section-label {
-  font-family: var(--font-dm-sans);
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-ink-faint);
+}
+
+/* Badge styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 100px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-primary {
+  background: var(--color-primary-wash);
+  color: var(--color-primary);
+}
+.badge-success {
+  background: var(--color-success-wash);
+  color: var(--color-success);
+}
+.badge-warning {
+  background: var(--color-warning-wash);
+  color: var(--color-warning);
+}
+.badge-danger {
+  background: var(--color-danger-wash);
+  color: var(--color-danger);
+}
+
+/* Stat card */
+.stat-card {
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  opacity: 0.1;
+  background: currentColor;
 }
 
 /* ============================================================
@@ -250,7 +306,7 @@ body::after {
    ============================================================ */
 
 .btn-press {
-  transition: transform 300ms ease-out, background-color 200ms ease;
+  transition: transform 300ms ease-out, box-shadow 200ms ease;
 }
 .btn-press:active:not(:disabled) {
   transform: scale(0.97);
@@ -261,9 +317,9 @@ body::after {
   transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease;
 }
 .card-hover:hover {
-  transform: translateY(-1px);
-  border-color: var(--color-border-strong);
-  box-shadow: 0 4px 16px rgba(44, 36, 24, 0.06);
+  transform: translateY(-2px);
+  border-color: var(--color-primary-light);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.08);
 }
 
 .dropdown-enter {

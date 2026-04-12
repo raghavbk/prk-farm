@@ -26,7 +26,7 @@ export default async function GroupsPage() {
       exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
       default="none"
     >
-    <main className="mx-auto max-w-lg px-4 py-8">
+    <main className="mx-auto max-w-2xl px-4 py-8">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-semibold text-ink">Groups</h1>
         <Link

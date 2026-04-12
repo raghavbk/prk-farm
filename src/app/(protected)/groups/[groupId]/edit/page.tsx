@@ -58,7 +58,7 @@ export default async function EditGroupPage({
       exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
       default="none"
     >
-    <main className="mx-auto max-w-lg px-4 py-8">
+    <main className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="text-xl font-bold text-gray-900">Edit Group</h1>
       <EditGroupForm
         groupId={groupId}

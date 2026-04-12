@@ -9,144 +9,89 @@ export default async function LoginPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user) {
-    redirect("/");
-  }
+  if (user) redirect("/");
 
   return (
-    <main
-      className="relative flex min-h-screen items-center justify-center overflow-hidden px-4"
-      style={{
-        background:
-          "linear-gradient(135deg, #fffbf5 0%, #fef5eb 30%, #e8fbf1 60%, #fff7e6 100%)",
-      }}
-    >
-      {/* Vibrant background blobs */}
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 bg-ink">
+      {/* Animated gradient mesh background */}
       <div className="pointer-events-none fixed inset-0">
         <div
-          className="absolute -top-20 -right-20 h-80 w-80 rounded-full opacity-30 blur-3xl"
+          className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(circle, #10b96d 0%, transparent 70%)",
+              "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.3) 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 100%, rgba(244,63,94,0.15) 0%, transparent 50%), radial-gradient(ellipse 50% 50% at 0% 50%, rgba(16,185,129,0.15) 0%, transparent 50%)",
           }}
         />
+        {/* Grid pattern */}
         <div
-          className="absolute top-1/3 -left-24 h-64 w-64 rounded-full opacity-25 blur-3xl"
+          className="absolute inset-0 opacity-[0.04]"
           style={{
-            background:
-              "radial-gradient(circle, #e08a00 0%, transparent 70%)",
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
+            backgroundSize: "60px 60px",
           }}
         />
-        <div
-          className="absolute -bottom-16 right-1/4 h-72 w-72 rounded-full opacity-20 blur-3xl"
-          style={{
-            background:
-              "radial-gradient(circle, #e5453a 0%, transparent 70%)",
-          }}
-        />
-        <div className="absolute -top-12 -right-12 h-56 w-56 rounded-full border-2 border-olive/10" />
-        <div className="absolute -bottom-20 -left-10 h-64 w-64 rounded-full border-2 border-amber/10" />
       </div>
 
-      <div className="relative w-full max-w-sm">
+      <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center">
           <div
-            className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl shadow-xl"
+            className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl text-white"
             style={{
-              background:
-                "linear-gradient(135deg, #0d9b5c 0%, #10b96d 100%)",
-              boxShadow: "0 8px 32px rgba(13, 155, 92, 0.3)",
+              background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+              boxShadow: "0 0 40px rgba(99,102,241,0.4)",
             }}
           >
-            <svg
-              width="36"
-              height="36"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2L2 7l10 5 10-5-10-5z" />
               <path d="M2 17l10 5 10-5" />
               <path d="M2 12l10 5 10-5" />
             </svg>
           </div>
 
-          <h1 className="mt-8 font-display text-4xl font-semibold tracking-tight text-ink">
-            Farm Share
-            <br />
-            <span className="bg-gradient-to-r from-olive to-sage bg-clip-text text-transparent">
-              Ledger
-            </span>
+          <h1 className="mt-6 font-display text-3xl font-bold text-white">
+            Welcome back
           </h1>
-
-          <p className="mx-auto mt-4 max-w-xs text-sm leading-relaxed text-ink-muted">
-            The single source of truth for shared farm expenses, ownership
-            splits, and who-owes-whom balances.
+          <p className="mt-2 text-sm text-white/50">
+            Sign in to your FarmLedger account
           </p>
         </div>
 
-        {/* Login card */}
+        {/* Glass card */}
         <div
-          className="mt-10 card-surface p-6"
-          style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}
+          className="mt-8 rounded-2xl p-8"
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+          }}
         >
           <LoginForm />
-          <p className="mt-5 text-center text-sm text-ink-muted">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/signup"
-              className="font-medium text-olive hover:text-olive-light transition-colors"
-            >
-              Sign up
-            </Link>
-          </p>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-white/40">
+              New here?{" "}
+              <Link href="/signup" className="font-semibold text-primary-light hover:text-white transition-colors">
+                Create an account
+              </Link>
+            </p>
+          </div>
         </div>
 
-        {/* Feature chips */}
-        <div className="mt-8 grid grid-cols-3 gap-3 text-center">
-          <div
-            className="rounded-xl py-3.5 px-2"
-            style={{
-              background:
-                "linear-gradient(135deg, #e8fbf1 0%, #d0f5e2 100%)",
-            }}
-          >
-            <p className="font-display text-xl font-bold text-olive">%</p>
-            <p className="mt-1 text-[10px] font-medium leading-tight text-olive/70">
-              Ownership splits
-            </p>
+        {/* Feature badges */}
+        <div className="mt-8 flex justify-center gap-3">
+          <div className="flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-xs text-white/40 border border-white/5">
+            <div className="h-1.5 w-1.5 rounded-full bg-success" />
+            Ownership Splits
           </div>
-          <div
-            className="rounded-xl py-3.5 px-2"
-            style={{
-              background:
-                "linear-gradient(135deg, #fff7e6 0%, #ffeccc 100%)",
-            }}
-          >
-            <p className="font-display text-xl font-bold text-amber">
-              &#8377;
-            </p>
-            <p className="mt-1 text-[10px] font-medium leading-tight text-amber/70">
-              Expense tracking
-            </p>
+          <div className="flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-xs text-white/40 border border-white/5">
+            <div className="h-1.5 w-1.5 rounded-full bg-warning" />
+            Expense Tracking
           </div>
-          <div
-            className="rounded-xl py-3.5 px-2"
-            style={{
-              background:
-                "linear-gradient(135deg, #e6faf3 0%, #ccf5e8 100%)",
-            }}
-          >
-            <p className="font-display text-xl font-bold text-sage">
-              &#x21C4;
-            </p>
-            <p className="mt-1 text-[10px] font-medium leading-tight text-sage/70">
-              Who owes whom
-            </p>
+          <div className="flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-xs text-white/40 border border-white/5">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+            Balances
           </div>
         </div>
       </div>

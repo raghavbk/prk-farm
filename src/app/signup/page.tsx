@@ -9,61 +9,56 @@ export default async function SignupPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user) {
-    redirect("/");
-  }
+  if (user) redirect("/");
 
   return (
-    <main
-      className="relative flex min-h-screen items-center justify-center overflow-hidden px-4"
-      style={{
-        background:
-          "linear-gradient(135deg, #fffbf5 0%, #fef5eb 30%, #e8fbf1 60%, #fff7e6 100%)",
-      }}
-    >
-      {/* Background blobs */}
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 bg-ink">
       <div className="pointer-events-none fixed inset-0">
         <div
-          className="absolute -top-20 -right-20 h-80 w-80 rounded-full opacity-30 blur-3xl"
+          className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(circle, #10b96d 0%, transparent 70%)",
+              "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16,185,129,0.25) 0%, transparent 60%), radial-gradient(ellipse 50% 50% at 100% 50%, rgba(99,102,241,0.15) 0%, transparent 50%)",
           }}
         />
         <div
-          className="absolute top-1/3 -left-24 h-64 w-64 rounded-full opacity-25 blur-3xl"
+          className="absolute inset-0 opacity-[0.04]"
           style={{
-            background:
-              "radial-gradient(circle, #e08a00 0%, transparent 70%)",
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
+            backgroundSize: "60px 60px",
           }}
         />
-        <div className="absolute -top-12 -right-12 h-56 w-56 rounded-full border-2 border-olive/10" />
       </div>
 
-      <div className="relative w-full max-w-sm">
+      <div className="relative w-full max-w-md">
         <div className="text-center">
-          <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
+          <h1 className="font-display text-3xl font-bold text-white">
             Create your account
           </h1>
-          <p className="mt-3 text-sm text-ink-muted">
-            Join your farm circle to start tracking expenses.
+          <p className="mt-2 text-sm text-white/50">
+            Join your farm circle to start tracking expenses
           </p>
         </div>
 
         <div
-          className="mt-8 card-surface p-6"
-          style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}
+          className="mt-8 rounded-2xl p-8"
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+          }}
         >
           <SignupForm />
-          <p className="mt-5 text-center text-sm text-ink-muted">
-            Already have an account?{" "}
-            <Link
-              href="/login"
-              className="font-medium text-olive hover:text-olive-light transition-colors"
-            >
-              Sign in
-            </Link>
-          </p>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-white/40">
+              Already have an account?{" "}
+              <Link href="/login" className="font-semibold text-primary-light hover:text-white transition-colors">
+                Sign in
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </main>
