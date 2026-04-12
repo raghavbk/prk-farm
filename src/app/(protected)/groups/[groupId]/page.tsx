@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { formatINR } from "@/lib/format";
+import { GroupBalances } from "@/components/group-balances";
 
 export default async function GroupDetailPage({
   params,
@@ -42,12 +43,6 @@ export default async function GroupDetailPage({
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
 
-  // Fetch balances
-  const { data: balances } = await supabase
-    .from("group_balances")
-    .select("*")
-    .eq("group_id", groupId);
-
   // Check if current user is tenant owner (for edit permissions)
   const { data: membership } = await supabase
     .from("tenant_members")
@@ -57,15 +52,6 @@ export default async function GroupDetailPage({
     .single();
 
   const isTenantOwner = membership?.role === "owner";
-
-  // Build a user lookup from members
-  const memberLookup = new Map(
-    (members ?? []).map((m) => [
-      m.user_id,
-      (m.profiles as unknown as { display_name: string; email: string })
-        ?.display_name ?? "Unknown",
-    ])
-  );
 
   return (
     <main className="mx-auto max-w-lg px-4 py-8">
@@ -118,29 +104,9 @@ export default async function GroupDetailPage({
         <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
           Balances
         </h2>
-        {!balances || balances.length === 0 ? (
-          <p className="mt-2 text-sm text-gray-400">No expenses yet</p>
-        ) : (
-          <ul className="mt-2 space-y-2">
-            {balances.map((b, i) => (
-              <li
-                key={i}
-                className="rounded-lg bg-gray-50 px-3 py-2 text-sm"
-              >
-                <span className="font-medium">
-                  {memberLookup.get(b.debtor_id) ?? "Unknown"}
-                </span>{" "}
-                owes{" "}
-                <span className="font-medium">
-                  {memberLookup.get(b.creditor_id) ?? "Unknown"}
-                </span>{" "}
-                <span className="font-bold text-gray-900">
-                  {formatINR(b.net_amount)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="mt-2">
+          <GroupBalances groupId={groupId} />
+        </div>
       </section>
 
       {/* Expenses */}
