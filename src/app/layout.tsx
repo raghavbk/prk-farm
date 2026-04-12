@@ -1,15 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Fraunces } from "next/font/google";
+import { Sora, DM_Sans } from "next/font/google";
 import "./globals.css";
+
+const sora = Sora({
+  subsets: ["latin"],
+  variable: "--font-sora",
+  weight: ["400", "500", "600", "700", "800"],
+});
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-dm-sans",
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
 });
 
 export const metadata: Metadata = {
@@ -28,11 +29,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${dmSans.variable} ${fraunces.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col font-sans bg-surface text-ink">
+    <html lang="en" className={`${sora.variable} ${dmSans.variable} h-full`}>
+      <body className="min-h-full flex flex-col bg-[#050506] text-white antialiased">
         {children}
       </body>
     </html>

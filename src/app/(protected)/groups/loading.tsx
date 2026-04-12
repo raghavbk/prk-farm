@@ -3,7 +3,7 @@ import { ViewTransition } from "react";
 export default function GroupsLoading() {
   return (
     <ViewTransition exit="slide-down">
-    <main className="mx-auto max-w-4xl px-6 py-8">
+    <main className="mx-auto max-w-[1120px] px-8 py-10">
       <div className="flex items-center justify-between">
         <div className="shimmer h-8 w-28 rounded-xl" />
         <div className="shimmer h-10 w-32 rounded-xl" />

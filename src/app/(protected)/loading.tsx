@@ -3,7 +3,7 @@ import { ViewTransition } from "react";
 export default function Loading() {
   return (
     <ViewTransition exit="slide-down">
-    <main className="mx-auto max-w-4xl px-6 py-8">
+    <main className="mx-auto max-w-[1120px] px-8 py-10">
       {/* Hero shimmer */}
       <div className="shimmer h-32 rounded-2xl" />
 

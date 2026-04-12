@@ -2,39 +2,36 @@
 
 @theme inline {
   --font-sans: var(--font-dm-sans);
-  --font-display: var(--font-fraunces);
+  --font-display: var(--font-sora);
 
-  /* Dark theme — premium fintech */
-  --color-surface: #0a0a0f;
-  --color-surface-warm: #12121a;
-  --color-surface-raised: #16161f;
-  --color-ink: #f0f0f5;
-  --color-ink-muted: #8b8ba0;
-  --color-ink-faint: #55556a;
-  --color-border: #1e1e2e;
-  --color-border-strong: #2a2a3e;
+  /* CRED-style dark premium palette */
+  --color-surface: #050506;
+  --color-surface-warm: #0c0c0f;
+  --color-surface-raised: #111114;
+  --color-surface-card: #151518;
+  --color-ink: #ebebf0;
+  --color-ink-muted: #8a8a9a;
+  --color-ink-faint: #4a4a58;
+  --color-border: #1c1c22;
+  --color-border-strong: #2a2a33;
 
-  /* Primary — electric indigo */
-  --color-primary: #818cf8;
-  --color-primary-light: #a5b4fc;
-  --color-primary-dark: #6366f1;
-  --color-primary-wash: rgba(129, 140, 248, 0.1);
+  /* Primary — warm gold/cream (CRED signature) */
+  --color-primary: #d4a853;
+  --color-primary-light: #e8c878;
+  --color-primary-dark: #b8923f;
+  --color-primary-wash: rgba(212, 168, 83, 0.08);
 
-  /* Success — neon emerald */
-  --color-success: #34d399;
-  --color-success-wash: rgba(52, 211, 153, 0.1);
+  --color-success: #3dd68c;
+  --color-success-wash: rgba(61, 214, 140, 0.08);
 
-  /* Warning — golden amber */
-  --color-warning: #fbbf24;
-  --color-warning-wash: rgba(251, 191, 36, 0.1);
+  --color-warning: #f0b429;
+  --color-warning-wash: rgba(240, 180, 41, 0.08);
 
-  /* Danger — hot rose */
-  --color-danger: #fb7185;
-  --color-danger-wash: rgba(251, 113, 133, 0.1);
+  --color-danger: #ef5f5f;
+  --color-danger-wash: rgba(239, 95, 95, 0.08);
 
-  /* Currency */
-  --color-currency: #2dd4bf;
-  --color-currency-wash: rgba(45, 212, 191, 0.1);
+  --color-currency: #d4a853;
+  --color-currency-wash: rgba(212, 168, 83, 0.08);
 
   /* Aliases */
   --color-olive: var(--color-primary);
@@ -48,177 +45,127 @@
   --color-sage-wash: var(--color-success-wash);
 }
 
-/* ============================================================
-   Typography
-   ============================================================ */
+* { font-family: var(--font-sans); }
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
 
 .font-display {
   font-family: var(--font-display);
-  font-optical-sizing: auto;
-}
-
-h1, h2 {
-  font-family: var(--font-display);
-  font-optical-sizing: auto;
+  letter-spacing: -0.02em;
 }
 
 /* ============================================================
-   Component Tokens — Dark Glass Design
+   CRED-style component system
    ============================================================ */
 
-.card-surface {
-  background: var(--color-surface-raised);
+.card {
+  background: var(--color-surface-card);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+}
+
+.card-surface { /* alias */
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
 }
 
 .card-glow {
-  background: var(--color-surface-raised);
+  background: var(--color-surface-card);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
-  box-shadow: 0 0 40px rgba(99, 102, 241, 0.06), 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 0 60px -20px rgba(212, 168, 83, 0.08);
 }
 
 .input-warm {
   background: var(--color-surface-warm);
-  border: 1.5px solid var(--color-border);
-  border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 15px;
   color: var(--color-ink);
-  transition: border-color 200ms ease, box-shadow 200ms ease;
+  transition: border-color 250ms ease, box-shadow 250ms ease;
+  width: 100%;
 }
 .input-warm:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15);
+  box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.08);
 }
 .input-warm::placeholder {
   color: var(--color-ink-faint);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary-dark) 0%, #7c3aed 100%);
-  color: white;
-  border-radius: 12px;
-  padding: 12px 20px;
+  background: var(--color-primary);
+  color: #050506;
+  border-radius: 14px;
+  padding: 14px 24px;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 14px;
-  letter-spacing: 0.01em;
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
-  transition: box-shadow 200ms ease, transform 300ms ease-out;
+  letter-spacing: 0.02em;
+  transition: opacity 200ms ease, transform 250ms ease;
 }
-.btn-primary:hover:not(:disabled) {
-  box-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
-}
-.btn-primary:active:not(:disabled) {
-  transform: scale(0.97);
-  transition: transform 100ms ease-out;
-}
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.btn-primary:hover:not(:disabled) { opacity: 0.88; }
+.btn-primary:active:not(:disabled) { transform: scale(0.97); transition: transform 100ms ease; }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .btn-secondary {
   background: var(--color-surface-warm);
-  color: var(--color-ink);
-  border: 1.5px solid var(--color-border);
-  border-radius: 12px;
-  padding: 8px 16px;
+  color: var(--color-ink-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 10px 18px;
+  font-family: var(--font-display);
   font-weight: 500;
   font-size: 14px;
-  transition: border-color 200ms ease, background-color 200ms ease, transform 300ms ease-out;
+  transition: border-color 200ms ease, color 200ms ease, transform 250ms ease;
 }
-.btn-secondary:hover {
-  border-color: var(--color-border-strong);
-  background: var(--color-border);
-}
-.btn-secondary:active {
-  transform: scale(0.97);
-  transition: transform 100ms ease-out;
-}
+.btn-secondary:hover { border-color: var(--color-border-strong); color: var(--color-ink); }
+.btn-secondary:active { transform: scale(0.97); transition: transform 100ms ease; }
 
 .btn-danger {
   background: transparent;
   color: var(--color-danger);
-  border: 1.5px solid rgba(251, 113, 133, 0.2);
-  border-radius: 12px;
-  padding: 12px 20px;
+  border: 1px solid rgba(239, 95, 95, 0.15);
+  border-radius: 14px;
+  padding: 14px 24px;
+  font-family: var(--font-display);
   font-weight: 500;
   font-size: 14px;
-  transition: background-color 200ms ease, transform 300ms ease-out;
+  transition: background-color 200ms ease, transform 250ms ease;
 }
-.btn-danger:hover {
-  background: var(--color-danger-wash);
-}
-.btn-danger:active {
-  transform: scale(0.97);
-  transition: transform 100ms ease-out;
-}
+.btn-danger:hover { background: var(--color-danger-wash); }
+.btn-danger:active { transform: scale(0.97); transition: transform 100ms ease; }
 
 .section-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-ink-faint);
 }
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 100px;
-  padding: 2px 10px;
-  font-size: 11px;
-  font-weight: 600;
-}
+.badge { display: inline-flex; align-items: center; border-radius: 100px; padding: 3px 10px; font-size: 11px; font-weight: 600; font-family: var(--font-display); }
 .badge-primary { background: var(--color-primary-wash); color: var(--color-primary); }
 .badge-success { background: var(--color-success-wash); color: var(--color-success); }
 .badge-warning { background: var(--color-warning-wash); color: var(--color-warning); }
 .badge-danger { background: var(--color-danger-wash); color: var(--color-danger); }
 
-.stat-card {
-  border-radius: 16px;
-  padding: 20px;
-  position: relative;
-  overflow: hidden;
-}
-.stat-card::after {
-  content: "";
-  position: absolute;
-  top: -40%;
-  right: -20%;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  opacity: 0.08;
-  background: currentColor;
-}
-
 /* ============================================================
    View Transition Recipes
    ============================================================ */
 
-:root {
-  --duration-exit: 150ms;
-  --duration-enter: 210ms;
-  --duration-move: 350ms;
-}
+:root { --duration-exit: 150ms; --duration-enter: 210ms; --duration-move: 350ms; }
 
-@keyframes fade {
-  from { filter: blur(3px); opacity: 0; }
-  to { filter: blur(0); opacity: 1; }
-}
-@keyframes slide {
-  from { translate: var(--slide-offset); }
-  to { translate: 0; }
-}
-@keyframes slide-y {
-  from { transform: translateY(var(--slide-y-offset, 10px)); }
-  to { transform: translateY(0); }
-}
+@keyframes fade { from { filter: blur(3px); opacity: 0; } to { filter: blur(0); opacity: 1; } }
+@keyframes slide { from { translate: var(--slide-offset); } to { translate: 0; } }
+@keyframes slide-y { from { transform: translateY(var(--slide-y-offset, 10px)); } to { transform: translateY(0); } }
 
 ::view-transition-old(.fade-out) { animation: var(--duration-exit) ease-in fade reverse; }
 ::view-transition-new(.fade-in) { animation: var(--duration-enter) ease-out var(--duration-exit) both fade; }
@@ -236,54 +183,25 @@ h1, h2 {
    Micro-Animations
    ============================================================ */
 
-.btn-press {
-  transition: transform 300ms ease-out, box-shadow 200ms ease;
-}
-.btn-press:active:not(:disabled) {
-  transform: scale(0.97);
-  transition: transform 100ms ease-out;
-}
+.btn-press { transition: transform 250ms ease; }
+.btn-press:active:not(:disabled) { transform: scale(0.97); transition: transform 100ms ease; }
 
-.card-hover {
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease;
-}
-.card-hover:hover {
-  transform: translateY(-2px);
-  border-color: var(--color-border-strong);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(99, 102, 241, 0.05);
-}
+.card-hover { transition: transform 250ms ease, border-color 250ms ease; }
+.card-hover:hover { transform: translateY(-3px); border-color: var(--color-border-strong); }
 
 .dropdown-enter { animation: dropdown-in 150ms ease-out; }
-@keyframes dropdown-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+@keyframes dropdown-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ============================================================
-   Shimmer loading animation
-   ============================================================ */
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 .shimmer {
-  background: linear-gradient(90deg, var(--color-surface-warm) 25%, var(--color-border) 50%, var(--color-surface-warm) 75%);
+  background: linear-gradient(90deg, var(--color-surface-card) 25%, var(--color-border) 50%, var(--color-surface-card) 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 12px;
+  animation: shimmer 2s ease-in-out infinite;
+  border-radius: 16px;
 }
-
-/* ============================================================
-   Reduced Motion
-   ============================================================ */
 
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(*), ::view-transition-new(*), ::view-transition-group(*) {
-    animation-duration: 0s !important;
-    animation-delay: 0s !important;
-  }
+  ::view-transition-old(*), ::view-transition-new(*), ::view-transition-group(*) { animation-duration: 0s !important; animation-delay: 0s !important; }
   .btn-press, .btn-primary, .btn-secondary, .btn-danger, .card-hover { transition: none !important; }
   .dropdown-enter, .shimmer { animation: none !important; }
 }

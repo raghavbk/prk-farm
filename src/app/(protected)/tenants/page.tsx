@@ -27,7 +27,7 @@ export default async function TenantsPage() {
 
   return (
     <ViewTransition enter="fade-in" exit="fade-out" default="none">
-    <main className="mx-auto max-w-4xl px-6 py-8">
+    <main className="mx-auto max-w-[1120px] px-8 py-10">
       <h1 className="font-display text-2xl font-semibold text-ink">Your Farms</h1>
       <p className="mt-2 text-sm text-ink-muted">
         Choose a farm to work in, or create a new one.
