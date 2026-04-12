@@ -6,12 +6,12 @@ import Link from "next/link";
 import { ViewTransition } from "react";
 
 const gradients = [
-  "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
-  "linear-gradient(135deg, #1a1a2e 0%, #0f2027 100%)",
-  "linear-gradient(135deg, #1a1a2e 0%, #1e1225 100%)",
-  "linear-gradient(135deg, #1a1a2e 0%, #1f1a0e 100%)",
-  "linear-gradient(135deg, #1a1a2e 0%, #0e1f1a 100%)",
-  "linear-gradient(135deg, #1a1a2e 0%, #1a0e1f 100%)",
+  "linear-gradient(135deg, #111118 0%, #16213e 100%)",
+  "linear-gradient(135deg, #111118 0%, #0f2027 100%)",
+  "linear-gradient(135deg, #111118 0%, #1e1225 100%)",
+  "linear-gradient(135deg, #111118 0%, #1f1a0e 100%)",
+  "linear-gradient(135deg, #111118 0%, #0e1f1a 100%)",
+  "linear-gradient(135deg, #111118 0%, #1a0e1f 100%)",
 ];
 const accents = ["#818cf8", "#34d399", "#f472b6", "#fbbf24", "#2dd4bf", "#c084fc"];
 
@@ -34,30 +34,30 @@ export default async function GroupsPage() {
       exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
       default="none"
     >
-    <main className="mx-auto max-w-[1120px] px-8 py-10">
-      <div className="flex items-end justify-between">
+    <main className="mx-auto w-full max-w-[1120px] px-5 sm:px-8 py-8 sm:py-10">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-[32px] font-bold text-white">Groups</h1>
+          <h1 className="font-display text-2xl sm:text-[32px] font-bold text-white">Groups</h1>
           <p className="mt-1 text-[13px] text-ink-faint">Manage expense groups and ownership splits</p>
         </div>
-        <Link href="/groups/new" transitionTypes={["nav-forward"]} className="btn-primary btn-press text-[13px]">
+        <Link href="/groups/new" transitionTypes={["nav-forward"]} className="btn-primary btn-press text-[13px] self-start sm:self-auto">
           + New Group
         </Link>
       </div>
 
       {!groups || groups.length === 0 ? (
-        <div className="mt-12 card p-16 text-center max-w-md mx-auto">
+        <div className="mt-12 card p-10 sm:p-16 text-center max-w-md mx-auto">
           <div className="mx-auto h-16 w-16 rounded-2xl bg-primary-wash flex items-center justify-center mb-5">
             <span className="font-display text-3xl text-primary">+</span>
           </div>
-          <p className="font-display text-lg font-semibold text-ink/70">No groups yet</p>
-          <p className="mt-2 text-[13px] text-ink-faint max-w-[280px] mx-auto">Groups let you track expenses for farm activities like crop seasons, land development, and utilities</p>
+          <p className="font-display text-lg font-semibold text-ink-muted">No groups yet</p>
+          <p className="mt-2 text-[13px] text-ink-faint max-w-[280px] mx-auto">Groups let you track expenses for farm activities</p>
           <Link href="/groups/new" transitionTypes={["nav-forward"]} className="btn-primary btn-press inline-block mt-6">
             Create your first group
           </Link>
         </div>
       ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {groups.map((group, i) => (
             <Link
               key={group.id}

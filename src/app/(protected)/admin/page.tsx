@@ -74,34 +74,34 @@ export default async function AdminPage() {
       exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
       default="none"
     >
-    <main className="mx-auto max-w-[1120px] px-8 py-10">
+    <main className="mx-auto w-full max-w-[1120px] px-5 sm:px-8 py-8 sm:py-10">
       <div>
-        <h1 className="font-display text-2xl font-bold text-ink">Farm Admin</h1>
-        <p className="mt-1 text-sm text-ink-muted">
+        <h1 className="font-display text-2xl sm:text-[32px] font-bold text-white">Farm Admin</h1>
+        <p className="mt-1 text-[13px] text-ink-faint">
           Manage <span className="font-semibold text-ink">{tenant?.name}</span>
         </p>
       </div>
 
       {/* Stats */}
-      <div className="mt-6 grid grid-cols-3 gap-3">
-        <div className="card-surface px-4 py-3 text-center">
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="card px-5 py-4 text-center">
           <p className="font-display text-2xl font-bold text-primary">{memberList.length}</p>
-          <p className="text-xs text-ink-faint font-medium">Members</p>
+          <p className="text-[12px] text-ink-faint font-medium mt-1">Members</p>
         </div>
-        <div className="card-surface px-4 py-3 text-center">
+        <div className="card px-5 py-4 text-center">
           <p className="font-display text-2xl font-bold text-success">{groupCount ?? 0}</p>
-          <p className="text-xs text-ink-faint font-medium">Groups</p>
+          <p className="text-[12px] text-ink-faint font-medium mt-1">Groups</p>
         </div>
-        <div className="card-surface px-4 py-3 text-center">
+        <div className="card px-5 py-4 text-center">
           <p className="font-display text-2xl font-bold text-warning">{expenseCount}</p>
-          <p className="text-xs text-ink-faint font-medium">Expenses</p>
+          <p className="text-[12px] text-ink-faint font-medium mt-1">Expenses</p>
         </div>
       </div>
 
       {/* Invite */}
       <section className="mt-8">
         <h2 className="section-label">Invite Member</h2>
-        <div className="mt-3 card-surface p-5">
+        <div className="mt-3 card p-5 sm:p-6 overflow-hidden">
           <InviteMemberForm />
         </div>
       </section>
