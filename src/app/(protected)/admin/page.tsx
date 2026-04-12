@@ -101,7 +101,7 @@ export default async function AdminPage() {
       {/* Invite */}
       <section className="mt-8">
         <h2 className="section-label">Invite Member</h2>
-        <div className="mt-3 card p-5 sm:p-6 overflow-hidden">
+        <div className="mt-3 card p-5 sm:p-6">
           <InviteMemberForm />
         </div>
       </section>
