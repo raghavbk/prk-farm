@@ -11,15 +11,14 @@ export function InviteMemberForm() {
       <p className="text-[13px] text-ink-faint mb-4">
         Add someone to your farm by their email. They must have an account already.
       </p>
-      {/* Stacks on mobile, row on sm+ */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <input type="email" name="email" required placeholder="Email address" className="input-warm sm:flex-1" />
+      <div className="space-y-3">
+        <input type="email" name="email" required placeholder="Email address" className="input-warm" />
         <div className="flex gap-3">
-          <select name="role" className="input-warm flex-1 sm:flex-none sm:w-28">
+          <select name="role" className="input-warm flex-1">
             <option value="member">Member</option>
             <option value="owner">Admin</option>
           </select>
-          <button type="submit" disabled={pending} className="btn-primary btn-press whitespace-nowrap flex-1 sm:flex-none">
+          <button type="submit" disabled={pending} className="btn-primary btn-press flex-1">
             {pending ? "Adding..." : "Invite"}
           </button>
         </div>
