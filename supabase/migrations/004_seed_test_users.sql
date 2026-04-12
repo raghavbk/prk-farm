@@ -1,6 +1,8 @@
 -- Seed two test users for development.
 -- Password for both: password123
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 -- Create users in auth.users (Supabase auth)
 INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, aud, role)
 VALUES
@@ -8,7 +10,7 @@ VALUES
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     '00000000-0000-0000-0000-000000000000',
     'alice@test.com',
-    crypt('password123', gen_salt('bf')),
+    extensions.crypt('password123', extensions.gen_salt('bf')),
     now(),
     '{"full_name": "Alice Sharma", "display_name": "Alice Sharma", "email": "alice@test.com"}'::jsonb,
     now(),
@@ -20,7 +22,7 @@ VALUES
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     '00000000-0000-0000-0000-000000000000',
     'bob@test.com',
-    crypt('password123', gen_salt('bf')),
+    extensions.crypt('password123', extensions.gen_salt('bf')),
     now(),
     '{"full_name": "Bob Patel", "display_name": "Bob Patel", "email": "bob@test.com"}'::jsonb,
     now(),
