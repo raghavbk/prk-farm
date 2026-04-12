@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getActiveTenantId } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { Nav } from "@/components/nav";
 
 export default async function ProtectedLayout({
   children,
@@ -25,11 +26,14 @@ export default async function ProtectedLayout({
       .limit(1);
 
     if (memberships && memberships.length > 0) {
-      // Auto-select first tenant
       redirect(`/tenants`);
     }
-    // No tenants at all — tenants page will show empty state
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <Nav />
+      {children}
+    </>
+  );
 }
