@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { LoginForm } from "./login-form";
-import Link from "next/link";
 
 export default async function LoginPage() {
   const supabase = await createClient();
@@ -38,10 +37,7 @@ export default async function LoginPage() {
         </div>
 
         <p className="mt-8 text-center text-[13px] text-ink-faint">
-          New here?{" "}
-          <Link href="/signup" className="text-primary font-medium hover:text-primary-light transition-colors">
-            Create an account
-          </Link>
+          Invite only — ask your farm admin for access
         </p>
       </div>
     </main>

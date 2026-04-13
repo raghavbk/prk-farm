@@ -1,11 +1,21 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveTenantId } from "@/lib/tenant";
 import { revalidatePath } from "next/cache";
 
 export type AdminActionResult = { error?: string; success?: string } | void;
+
+function generateTempPassword(): string {
+  const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let password = "";
+  for (let i = 0; i < 10; i++) {
+    password += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return password;
+}
 
 export async function inviteMember(
   _prev: AdminActionResult,
@@ -18,6 +28,7 @@ export async function inviteMember(
   if (!tenantId) return { error: "No active tenant" };
 
   const email = formData.get("email") as string;
+  const displayName = formData.get("displayName") as string;
   const role = (formData.get("role") as string) || "member";
 
   if (!email?.trim()) return { error: "Email is required" };
@@ -36,42 +47,94 @@ export async function inviteMember(
     return { error: "Only tenant owners can invite members" };
   }
 
-  // Find the user by email
+  // Check if user already exists
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, display_name, email")
     .eq("email", email.trim())
     .single();
 
-  if (!profile) {
-    return { error: "No user found with that email. They need to sign up first." };
+  let userId: string;
+  let tempPassword: string | null = null;
+  let userName: string;
+
+  if (profile) {
+    // Existing user
+    userId = profile.id;
+    userName = profile.display_name;
+
+    // Check if already a member
+    const { data: existing } = await supabase
+      .from("tenant_members")
+      .select("user_id")
+      .eq("tenant_id", tenantId)
+      .eq("user_id", userId)
+      .single();
+
+    if (existing) {
+      return { error: "This user is already a member of this farm" };
+    }
+  } else {
+    // New user — create account via admin API
+    const name = displayName?.trim() || email.split("@")[0];
+    tempPassword = generateTempPassword();
+
+    const admin = createAdminClient();
+    const { data: newUser, error: createError } = await admin.auth.admin.createUser({
+      email: email.trim(),
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: name,
+        display_name: name,
+        email: email.trim(),
+      },
+    });
+
+    if (createError) {
+      return { error: createError.message };
+    }
+
+    userId = newUser.user.id;
+    userName = name;
+
+    // Wait briefly for the profile trigger to fire, then ensure profile exists
+    const { data: newProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .single();
+
+    if (!newProfile) {
+      // Trigger didn't fire — insert profile manually
+      await supabase.from("profiles").insert({
+        id: userId,
+        display_name: name,
+        email: email.trim(),
+      });
+    }
   }
 
-  // Check if already a member
-  const { data: existing } = await supabase
-    .from("tenant_members")
-    .select("user_id")
-    .eq("tenant_id", tenantId)
-    .eq("user_id", profile.id)
-    .single();
-
-  if (existing) {
-    return { error: "This user is already a member of this farm" };
-  }
-
-  // Add as member
+  // Add to tenant
   const { error: insertError } = await supabase
     .from("tenant_members")
     .insert({
       tenant_id: tenantId,
-      user_id: profile.id,
+      user_id: userId,
       role: role === "owner" ? "owner" : "member",
     });
 
   if (insertError) return { error: insertError.message };
 
   revalidatePath("/admin");
-  return { success: `${profile.display_name} has been added to the farm` };
+
+  if (tempPassword) {
+    return {
+      success: `${userName} has been invited! Their temporary password is: ${tempPassword} — share it with them securely. They can log in at the login page.`,
+    };
+  }
+
+  return { success: `${userName} has been added to the farm` };
 }
 
 export async function removeMember(memberId: string) {

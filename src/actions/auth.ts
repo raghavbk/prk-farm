@@ -31,36 +31,3 @@ export async function login(
   redirect("/");
 }
 
-export async function signup(
-  _prev: AuthActionResult,
-  formData: FormData
-): Promise<AuthActionResult> {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const displayName = formData.get("displayName") as string;
-
-  if (!displayName?.trim()) return { error: "Name is required" };
-  if (!email?.trim()) return { error: "Email is required" };
-  if (!password) return { error: "Password is required" };
-  if (password.length < 6) return { error: "Password must be at least 6 characters" };
-
-  const supabase = await createClient();
-
-  const { error } = await supabase.auth.signUp({
-    email: email.trim(),
-    password,
-    options: {
-      data: {
-        full_name: displayName.trim(),
-        display_name: displayName.trim(),
-      },
-    },
-  });
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  revalidatePath("/");
-  redirect("/");
-}
