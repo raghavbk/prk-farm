@@ -1,11 +1,21 @@
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Load .env.local manually
+const envPath = resolve(process.cwd(), ".env.local");
+const envContent = readFileSync(envPath, "utf-8");
+const env: Record<string, string> = {};
+for (const line of envContent.split("\n")) {
+  const match = line.match(/^([^#=]+)=(.*)$/);
+  if (match) env[match[1].trim()] = match[2].trim();
+}
+
+const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !serviceRoleKey) {
-  console.error("Missing env vars. Run:");
-  console.error("  source .env.local && npm run seed:admin");
+  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local");
   process.exit(1);
 }
 
@@ -18,26 +28,12 @@ async function seedAdmin() {
   const password = "admin123";
   const name = "Farm Admin";
 
-  // Delete existing user if any (clean slate)
-  const { data: existing } = await supabase.auth.admin.listUsers();
-  const oldUser = existing?.users?.find((u) => u.email === email);
-  if (oldUser) {
-    console.log("Removing existing user...");
-    await supabase.auth.admin.deleteUser(oldUser.id);
-    await supabase.from("profiles").delete().eq("id", oldUser.id);
-  }
-
-  // Create user — email verified, password set
   console.log(`Creating admin: ${email}`);
   const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
-    email_confirm: true, // marks email as verified
-    user_metadata: {
-      full_name: name,
-      display_name: name,
-      email,
-    },
+    email_confirm: true,
+    user_metadata: { full_name: name, display_name: name, email },
   });
 
   if (error) {
@@ -48,13 +44,9 @@ async function seedAdmin() {
   console.log("User created:", data.user.id);
 
   // Ensure profile exists
-  await supabase.from("profiles").upsert({
-    id: data.user.id,
-    display_name: name,
-    email,
-  });
-
+  await supabase.from("profiles").upsert({ id: data.user.id, display_name: name, email });
   console.log("Profile created");
+
   console.log("\n  Email:    " + email);
   console.log("  Password: " + password);
   console.log("\nReady to log in.");
