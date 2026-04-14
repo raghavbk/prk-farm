@@ -264,7 +264,7 @@ create policy "profiles_update_own" on public.profiles
 -- ── TENANTS ──
 create policy "tenants_select" on public.tenants
   for select to authenticated
-  using (public.is_tenant_member(id));
+  using (created_by = auth.uid() or public.is_tenant_member(id));
 
 create policy "tenants_insert" on public.tenants
   for insert to authenticated
