@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "seed:admin": "tsx scripts/seed-admin.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
@@ -31,6 +32,7 @@
     "eslint-config-next": "16.2.3",
     "jsdom": "^29.0.2",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.1.4"
   }
