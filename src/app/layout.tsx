@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   description: "Track shared farm expenses and balances",
 };
 
+// Region pinning for functions lives in vercel.json — root-layout
+// preferredRegion is overridden by Fluid Compute's smart routing.
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,

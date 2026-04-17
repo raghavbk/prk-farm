@@ -8,10 +8,8 @@ export default async function LoginPage() {
   if (user) redirect("/");
 
   // If no users exist yet, redirect to setup
-  const { count } = await supabase
-    .from("profiles")
-    .select("id", { count: "exact", head: true });
-  if (!count || count === 0) redirect("/setup");
+  const { data: hasUsers } = await supabase.rpc("has_any_user");
+  if (!hasUsers) redirect("/setup");
 
   return (
     <main className="relative flex min-h-screen items-center justify-center px-6 bg-[#050506]">
