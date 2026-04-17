@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ViewTransition } from "react";
 import { switchTenant } from "@/actions/tenant";
 import { CreateTenantForm } from "./create-tenant-form";
+import { TenantSwitchButton } from "./tenant-switch-button";
 
 export default async function TenantsPage() {
   const user = await getCurrentUser();
@@ -44,24 +45,11 @@ export default async function TenantsPage() {
           {tenants.map((tenant) => (
             <li key={tenant.id}>
               <form action={switchTenant.bind(null, tenant.id)}>
-                <button
-                  type="submit"
-                  className={`w-full card-surface card-hover p-4 text-left ${
-                    tenant.id === activeTenantId
-                      ? "!border-olive bg-olive-wash"
-                      : ""
-                  }`}
-                >
-                  <span className="font-medium text-ink">
-                    {tenant.name}
-                  </span>
-                  {tenant.id === activeTenantId && (
-                    <span className="ml-2 rounded-full bg-olive/10 px-2 py-0.5 text-xs font-medium text-olive">Active</span>
-                  )}
-                  <span className="ml-2 text-xs text-ink-faint capitalize">
-                    {tenant.role}
-                  </span>
-                </button>
+                <TenantSwitchButton
+                  isActive={tenant.id === activeTenantId}
+                  name={tenant.name}
+                  role={tenant.role}
+                />
               </form>
             </li>
           ))}

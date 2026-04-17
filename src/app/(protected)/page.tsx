@@ -15,11 +15,16 @@ export default async function DashboardPage() {
 
   const supabase = await createClient();
 
-  const { data: summary } = await supabase.rpc("tenant_summary", { p_tenant_id: tenantId, p_user_id: user.id });
-  const totals = summary?.[0] ?? { total_you_owe: 0, total_owed_to_you: 0 };
-  const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", user.id).single();
-  const { data: tenant } = await supabase.from("tenants").select("name").eq("id", tenantId).single();
-  const { data: groups } = await supabase.from("groups").select("id, name, group_members(user_id)").eq("tenant_id", tenantId).order("created_at", { ascending: false });
+  const [summaryRes, profileRes, tenantRes, groupsRes] = await Promise.all([
+    supabase.rpc("tenant_summary", { p_tenant_id: tenantId, p_user_id: user.id }),
+    supabase.from("profiles").select("display_name").eq("id", user.id).single(),
+    supabase.from("tenants").select("name").eq("id", tenantId).single(),
+    supabase.from("groups").select("id, name, group_members(user_id)").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
+  ]);
+  const totals = summaryRes.data?.[0] ?? { total_you_owe: 0, total_owed_to_you: 0 };
+  const profile = profileRes.data;
+  const tenant = tenantRes.data;
+  const groups = groupsRes.data;
 
   const groupIds = (groups ?? []).map((g) => g.id);
   let recentExpenses: { id: string; group_id: string; description: string; amount: number; date: string; paidByName: string; groupName: string }[] = [];
