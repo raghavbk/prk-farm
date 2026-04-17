@@ -20,11 +20,11 @@ export async function Nav() {
       className="sticky top-0 z-40"
       style={{ viewTransitionName: "site-nav", background: "rgba(5,5,6,0.7)", backdropFilter: "blur(24px) saturate(150%)", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
     >
-      <div className="mx-auto flex h-14 sm:h-16 max-w-[1120px] items-center justify-between px-5 sm:px-8">
+      <div className="mx-auto flex h-[100px] max-w-[1120px] items-center justify-between px-5 sm:px-8">
         <div className="flex items-center gap-3 sm:gap-5 min-w-0">
           <Link href="/" className="flex items-center shrink-0" aria-label="VibeNaturals home">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-header.svg" alt="VibeNaturals" className="h-8 w-auto" />
+            <img src="/logo-header.svg" alt="VibeNaturals" className="h-[50px] w-auto" />
           </Link>
           <div className="h-4 w-px bg-white/[0.06] shrink-0" />
           <TenantSwitcher />
