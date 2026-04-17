@@ -6,11 +6,8 @@ export default async function SetupPage() {
   const supabase = await createClient();
 
   // If any users exist, setup is done — go to login
-  const { count } = await supabase
-    .from("profiles")
-    .select("id", { count: "exact", head: true });
-
-  if (count && count > 0) {
+  const { data: hasUsers } = await supabase.rpc("has_any_user");
+  if (hasUsers) {
     redirect("/login");
   }
 
