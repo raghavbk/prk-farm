@@ -33,8 +33,8 @@
   </g>
 
   <!-- Wordmark: 58px (was 50). "vibenaturals" at 58px ≈ 332px wide → ends at ~414. Tagline center: 82 + 332/2 = 248 -->
-  <text x="82" y="48" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="500" font-size="58" fill="#2a4d33" letter-spacing="-1.2">vibe<tspan fill="#5fa86b">naturals</tspan></text>
+  <text x="82" y="48" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="500" font-size="58" fill="#a1a1aa" letter-spacing="-1.2">vibe<tspan fill="#5fa86b">naturals</tspan></text>
 
   <!-- Tagline: 11px font (was 8.5), letter-spacing 5.5 (was 3.6) -->
-  <text x="248" y="68" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="400" font-size="11" fill="#5a6b5e" letter-spacing="5.5">FEEL THE NATURE VIBE</text>
+  <text x="248" y="68" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="400" font-size="11" fill="#ffffff" letter-spacing="5.5">FEEL THE NATURE VIBE</text>
 </svg>
