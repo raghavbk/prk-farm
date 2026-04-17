@@ -38,35 +38,63 @@ export async function inviteMember(
     return { error: "Only tenant owners can invite members" };
   }
 
-  // Check if user already exists
+  const admin = createAdminClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const normalizedEmail = email.trim();
+  const normalizedRole = role === "owner" ? "owner" : "member";
+
+  // Check if user already exists in our profiles table
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, display_name, email")
-    .eq("email", email.trim())
+    .eq("email", normalizedEmail)
     .single();
 
   if (profile) {
-    // Existing user — check if already a member
-    const { data: existing } = await supabase
+    // Look up auth state to distinguish pending vs. onboarded users
+    const { data: authLookup } = await admin.auth.admin.getUserById(profile.id);
+    const isPending = !!authLookup?.user && !authLookup.user.email_confirmed_at;
+
+    const { data: existingMember } = await supabase
       .from("tenant_members")
       .select("user_id")
       .eq("tenant_id", tenantId)
       .eq("user_id", profile.id)
       .single();
 
-    if (existing) {
+    if (isPending) {
+      // Re-send a fresh invite email (new one-time token)
+      const name = displayName?.trim() || profile.display_name || normalizedEmail.split("@")[0];
+      const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(normalizedEmail, {
+        data: {
+          full_name: name,
+          display_name: name,
+          email: normalizedEmail,
+          invited_to_tenant: tenantId,
+          invited_role: normalizedRole,
+        },
+        redirectTo: `${siteUrl}/auth/callback`,
+      });
+      if (inviteError) return { error: inviteError.message };
+
+      if (!existingMember) {
+        const { error: insertError } = await supabase
+          .from("tenant_members")
+          .insert({ tenant_id: tenantId, user_id: profile.id, role: normalizedRole });
+        if (insertError) return { error: insertError.message };
+      }
+
+      revalidatePath("/admin");
+      return { success: `Invite resent to ${normalizedEmail}.` };
+    }
+
+    if (existingMember) {
       return { error: "This user is already a member of this farm" };
     }
 
-    // Add existing user directly
     const { error: insertError } = await supabase
       .from("tenant_members")
-      .insert({
-        tenant_id: tenantId,
-        user_id: profile.id,
-        role: role === "owner" ? "owner" : "member",
-      });
-
+      .insert({ tenant_id: tenantId, user_id: profile.id, role: normalizedRole });
     if (insertError) return { error: insertError.message };
 
     revalidatePath("/admin");
@@ -74,20 +102,16 @@ export async function inviteMember(
   }
 
   // New user — send invite email via Supabase
-  const name = displayName?.trim() || email.split("@")[0];
-  const admin = createAdminClient();
-
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
+  const name = displayName?.trim() || normalizedEmail.split("@")[0];
   const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
-    email.trim(),
+    normalizedEmail,
     {
       data: {
         full_name: name,
         display_name: name,
-        email: email.trim(),
+        email: normalizedEmail,
         invited_to_tenant: tenantId,
-        invited_role: role === "owner" ? "owner" : "member",
+        invited_role: normalizedRole,
       },
       redirectTo: `${siteUrl}/auth/callback`,
     }
@@ -95,28 +119,22 @@ export async function inviteMember(
 
   if (inviteError) return { error: inviteError.message };
 
-  // Add to tenant now (they'll set password when they click the email link)
   const userId = inviteData.user.id;
 
-  // Ensure profile exists
   await supabase.from("profiles").upsert({
     id: userId,
     display_name: name,
-    email: email.trim(),
+    email: normalizedEmail,
   });
 
   const { error: insertError } = await supabase
     .from("tenant_members")
-    .insert({
-      tenant_id: tenantId,
-      user_id: userId,
-      role: role === "owner" ? "owner" : "member",
-    });
+    .insert({ tenant_id: tenantId, user_id: userId, role: normalizedRole });
 
   if (insertError) return { error: insertError.message };
 
   revalidatePath("/admin");
-  return { success: `Invite sent to ${email}. They'll receive an email to set up their account.` };
+  return { success: `Invite sent to ${normalizedEmail}. They'll receive an email to set up their account.` };
 }
 
 export async function removeMember(memberId: string) {
