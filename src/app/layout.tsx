@@ -18,10 +18,8 @@ export const metadata: Metadata = {
   description: "Track shared farm expenses and balances",
 };
 
-// Co-locate all Serverless/Fluid Compute functions with the Supabase
-// project (ap-southeast-1, Singapore). Without this, functions default to
-// iad1 (US East) and each Supabase query pays ~230 ms cross-continent RTT.
-export const preferredRegion = ["sin1"];
+// Region pinning for functions lives in vercel.json — root-layout
+// preferredRegion is overridden by Fluid Compute's smart routing.
 
 export const viewport: Viewport = {
   width: "device-width",
