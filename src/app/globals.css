@@ -1,0 +1,207 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-sora);
+
+  /* CRED-style dark premium palette */
+  --color-surface: #050506;
+  --color-surface-warm: #0c0c0f;
+  --color-surface-raised: #111114;
+  --color-surface-card: #151518;
+  --color-ink: #ebebf0;
+  --color-ink-muted: #8a8a9a;
+  --color-ink-faint: #4a4a58;
+  --color-border: #1c1c22;
+  --color-border-strong: #2a2a33;
+
+  /* Primary — warm gold/cream (CRED signature) */
+  --color-primary: #d4a853;
+  --color-primary-light: #e8c878;
+  --color-primary-dark: #b8923f;
+  --color-primary-wash: rgba(212, 168, 83, 0.08);
+
+  --color-success: #3dd68c;
+  --color-success-wash: rgba(61, 214, 140, 0.08);
+
+  --color-warning: #f0b429;
+  --color-warning-wash: rgba(240, 180, 41, 0.08);
+
+  --color-danger: #ef5f5f;
+  --color-danger-wash: rgba(239, 95, 95, 0.08);
+
+  --color-currency: #d4a853;
+  --color-currency-wash: rgba(212, 168, 83, 0.08);
+
+  /* Aliases */
+  --color-olive: var(--color-primary);
+  --color-olive-light: var(--color-primary-light);
+  --color-olive-wash: var(--color-primary-wash);
+  --color-amber: var(--color-warning);
+  --color-amber-wash: var(--color-warning-wash);
+  --color-terra: var(--color-danger);
+  --color-terra-wash: var(--color-danger-wash);
+  --color-sage: var(--color-success);
+  --color-sage-wash: var(--color-success-wash);
+}
+
+* { font-family: var(--font-sans); }
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* ============================================================
+   CRED-style component system
+   ============================================================ */
+
+.card {
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+}
+
+.card-surface { /* alias */
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+}
+
+.card-glow {
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  box-shadow: 0 0 60px -20px rgba(212, 168, 83, 0.08);
+}
+
+.input-warm {
+  background: var(--color-surface-warm);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 15px;
+  color: var(--color-ink);
+  transition: border-color 250ms ease, box-shadow 250ms ease;
+  width: 100%;
+}
+.input-warm:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.08);
+}
+.input-warm::placeholder {
+  color: var(--color-ink-faint);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #050506;
+  border-radius: 14px;
+  padding: 14px 24px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  transition: opacity 200ms ease, transform 250ms ease;
+}
+.btn-primary:hover:not(:disabled) { opacity: 0.88; }
+.btn-primary:active:not(:disabled) { transform: scale(0.97); transition: transform 100ms ease; }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-secondary {
+  background: var(--color-surface-warm);
+  color: var(--color-ink-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 10px 18px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  transition: border-color 200ms ease, color 200ms ease, transform 250ms ease;
+}
+.btn-secondary:hover { border-color: var(--color-border-strong); color: var(--color-ink); }
+.btn-secondary:active { transform: scale(0.97); transition: transform 100ms ease; }
+
+.btn-danger {
+  background: transparent;
+  color: var(--color-danger);
+  border: 1px solid rgba(239, 95, 95, 0.15);
+  border-radius: 14px;
+  padding: 14px 24px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  transition: background-color 200ms ease, transform 250ms ease;
+}
+.btn-danger:hover { background: var(--color-danger-wash); }
+.btn-danger:active { transform: scale(0.97); transition: transform 100ms ease; }
+
+.section-label {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+.badge { display: inline-flex; align-items: center; border-radius: 100px; padding: 3px 10px; font-size: 11px; font-weight: 600; font-family: var(--font-display); }
+.badge-primary { background: var(--color-primary-wash); color: var(--color-primary); }
+.badge-success { background: var(--color-success-wash); color: var(--color-success); }
+.badge-warning { background: var(--color-warning-wash); color: var(--color-warning); }
+.badge-danger { background: var(--color-danger-wash); color: var(--color-danger); }
+
+/* ============================================================
+   View Transition Recipes
+   ============================================================ */
+
+:root { --duration-exit: 150ms; --duration-enter: 210ms; --duration-move: 350ms; }
+
+@keyframes fade { from { filter: blur(3px); opacity: 0; } to { filter: blur(0); opacity: 1; } }
+@keyframes slide { from { translate: var(--slide-offset); } to { translate: 0; } }
+@keyframes slide-y { from { transform: translateY(var(--slide-y-offset, 10px)); } to { transform: translateY(0); } }
+
+::view-transition-old(.fade-out) { animation: var(--duration-exit) ease-in fade reverse; }
+::view-transition-new(.fade-in) { animation: var(--duration-enter) ease-out var(--duration-exit) both fade; }
+::view-transition-old(.slide-down) { animation: var(--duration-exit) ease-out both fade reverse, var(--duration-exit) ease-out both slide-y reverse; }
+::view-transition-new(.slide-up) { animation: var(--duration-enter) ease-in var(--duration-exit) both fade, var(--duration-move) ease-in both slide-y; }
+::view-transition-new(.slide-from-right) { --slide-offset: 60px; animation: var(--duration-enter) ease-out var(--duration-exit) both fade, var(--duration-move) ease-in-out both slide; }
+::view-transition-old(.slide-to-left) { --slide-offset: -60px; animation: var(--duration-exit) ease-in both fade reverse, var(--duration-move) ease-in-out both slide reverse; }
+::view-transition-new(.slide-from-left) { --slide-offset: -60px; animation: var(--duration-enter) ease-out var(--duration-exit) both fade, var(--duration-move) ease-in-out both slide; }
+::view-transition-old(.slide-to-right) { --slide-offset: 60px; animation: var(--duration-exit) ease-in both fade reverse, var(--duration-move) ease-in-out both slide reverse; }
+::view-transition-group(site-nav) { animation: none; z-index: 100; }
+::view-transition-old(site-nav) { display: none; }
+::view-transition-new(site-nav) { animation: none; }
+
+/* ============================================================
+   Micro-Animations
+   ============================================================ */
+
+.btn-press { transition: transform 250ms ease; }
+.btn-press:active:not(:disabled) { transform: scale(0.97); transition: transform 100ms ease; }
+
+.card-hover { transition: transform 250ms ease, border-color 250ms ease; }
+.card-hover:hover { transform: translateY(-3px); border-color: var(--color-border-strong); }
+
+.dropdown-enter { animation: dropdown-in 150ms ease-out; }
+@keyframes dropdown-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+.shimmer {
+  background: linear-gradient(90deg, var(--color-surface-card) 25%, var(--color-border) 50%, var(--color-surface-card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+  border-radius: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*), ::view-transition-new(*), ::view-transition-group(*) { animation-duration: 0s !important; animation-delay: 0s !important; }
+  .btn-press, .btn-primary, .btn-secondary, .btn-danger, .card-hover { transition: none !important; }
+  .dropdown-enter, .shimmer { animation: none !important; }
+}
