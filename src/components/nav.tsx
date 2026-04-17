@@ -22,11 +22,9 @@ export async function Nav() {
     >
       <div className="mx-auto flex h-14 sm:h-16 max-w-[1120px] items-center justify-between px-5 sm:px-8">
         <div className="flex items-center gap-3 sm:gap-5 min-w-0">
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
-              <span className="font-display text-sm font-bold text-primary">F</span>
-            </div>
-            <span className="hidden sm:inline font-display text-[15px] font-semibold text-ink/90">FarmLedger</span>
+          <Link href="/" className="flex items-center shrink-0" aria-label="VibeNaturals home">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-header.svg" alt="VibeNaturals" className="h-8 w-auto" />
           </Link>
           <div className="h-4 w-px bg-white/[0.06] shrink-0" />
           <TenantSwitcher />

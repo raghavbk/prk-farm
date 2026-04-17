@@ -14,7 +14,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Farm Share Ledger",
+  title: "VibeNaturals",
   description: "Track shared farm expenses and balances",
 };
 

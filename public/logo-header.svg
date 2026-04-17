@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80" role="img" aria-label="VibeNaturals">
+  <title>VibeNaturals</title>
+  <desc>VibeNaturals horizontal header logo: circular emblem with sprout and three connected nodes, paired with the wordmark and tagline.</desc>
+
+  <defs>
+    <clipPath id="circleClipHeader">
+      <circle cx="40" cy="40" r="32"/>
+    </clipPath>
+  </defs>
+
+  <!-- Emblem -->
+  <g>
+    <!-- Outer ring -->
+    <circle cx="40" cy="40" r="34" fill="#f4ead5" stroke="#2a4d33" stroke-width="1.2"/>
+    <circle cx="40" cy="40" r="32" fill="#ffffff" stroke="#3d7a4a" stroke-width="0.4"/>
+
+    <!-- Soil -->
+    <g clip-path="url(#circleClipHeader)">
+      <path d="M 8 56 Q 40 52 72 56 L 72 80 L 8 80 Z" fill="#c8a878" opacity="0.4"/>
+      <path d="M 8 60 Q 40 56 72 60 L 72 80 L 8 80 Z" fill="#c8a878" opacity="0.55"/>
+    </g>
+
+    <!-- Stem -->
+    <path d="M 40 62 L 40 38" stroke="#3d7a4a" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+
+    <!-- Left leaf -->
+    <path d="M 40 48 Q 28 44 23 35 Q 28 31 35 35 Q 39 40 40 48 Z" fill="#5fa86b"/>
+    <!-- Right leaf -->
+    <path d="M 40 45 Q 52 41 57 32 Q 52 28 45 32 Q 41 37 40 45 Z" fill="#8dc596"/>
+    <!-- Top sprout -->
+    <path d="M 40 38 Q 36 32 37.5 25 Q 40 22 42.5 25 Q 44 32 40 38 Z" fill="#5fa86b"/>
+
+    <!-- Three nodes + circuit lines -->
+    <path d="M 18 58 L 25 58 L 25 52" stroke="#3d7a4a" stroke-width="0.6" fill="none" stroke-linecap="round"/>
+    <path d="M 62 58 L 55 58 L 55 52" stroke="#3d7a4a" stroke-width="0.6" fill="none" stroke-linecap="round"/>
+    <path d="M 40 65 L 40 62" stroke="#3d7a4a" stroke-width="0.6" fill="none" stroke-linecap="round"/>
+
+    <circle cx="18" cy="58" r="1.8" fill="#f4ead5" stroke="#2a4d33" stroke-width="0.8"/>
+    <circle cx="62" cy="58" r="1.8" fill="#f4ead5" stroke="#2a4d33" stroke-width="0.8"/>
+    <circle cx="40" cy="66" r="1.8" fill="#f4ead5" stroke="#2a4d33" stroke-width="0.8"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="92" y="48" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="500" font-size="26" fill="#2a4d33" letter-spacing="-0.4">vibe<tspan fill="#5fa86b">naturals</tspan></text>
+
+  <!-- Tagline -->
+  <text x="92" y="64" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="400" font-size="8" fill="#5a6b5e" letter-spacing="2.5">FEEL THE NATURE VIBE</text>
+</svg>

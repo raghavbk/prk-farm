@@ -23,13 +23,12 @@ export default async function LoginPage() {
       <div className="relative w-full max-w-[380px]">
         {/* Logo */}
         <div className="flex justify-center">
-          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <span className="font-display text-xl font-bold text-primary">F</span>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-header.svg" alt="VibeNaturals" className="h-14 w-auto" />
         </div>
 
         <h1 className="mt-8 text-center font-display text-[28px] font-bold text-white leading-tight">
-          Welcome to<br />FarmLedger
+          Welcome to<br />VibeNaturals
         </h1>
         <p className="mt-3 text-center text-sm text-ink-faint leading-relaxed">
           One ledger for your entire farm circle
