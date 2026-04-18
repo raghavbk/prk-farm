@@ -64,7 +64,7 @@ export function CreateGroupForm({ currentUserId }: { currentUserId: string }) {
       <button
         type="submit"
         disabled={pending || !isValid}
-        className="w-full btn-primary btn-press"
+        className="btn btn-primary btn-press w-full"
       >
         {pending ? "Creating..." : "Create Group"}
       </button>

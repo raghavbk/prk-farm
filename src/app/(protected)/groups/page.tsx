@@ -40,7 +40,7 @@ export default async function GroupsPage() {
           <h1 className="font-display text-2xl sm:text-[32px] font-bold text-white">Groups</h1>
           <p className="mt-1 text-[13px] text-ink-faint">Manage expense groups and ownership splits</p>
         </div>
-        <Link href="/groups/new" transitionTypes={["nav-forward"]} className="btn-primary btn-press text-[13px] self-start sm:self-auto">
+        <Link href="/groups/new" transitionTypes={["nav-forward"]} className="btn btn-accent btn-press self-start sm:self-auto">
           + New Group
         </Link>
       </div>
@@ -52,7 +52,7 @@ export default async function GroupsPage() {
           </div>
           <p className="font-display text-lg font-semibold text-ink-muted">No groups yet</p>
           <p className="mt-2 text-[13px] text-ink-faint max-w-[280px] mx-auto">Groups let you track expenses for farm activities</p>
-          <Link href="/groups/new" transitionTypes={["nav-forward"]} className="btn-primary btn-press inline-block mt-6">
+          <Link href="/groups/new" transitionTypes={["nav-forward"]} className="btn btn-accent btn-press mt-6 inline-flex">
             Create your first group
           </Link>
         </div>

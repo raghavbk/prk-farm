@@ -40,7 +40,7 @@ export function SetPasswordForm() {
         <div className="rounded-xl bg-danger-wash border border-danger/10 px-4 py-3 text-[13px] text-danger">{state.error}</div>
       )}
 
-      <button type="submit" disabled={pending} className="w-full btn-primary btn-press">
+      <button type="submit" disabled={pending} className="btn btn-primary btn-press w-full">
         {pending ? "Setting password..." : "Set password & continue"}
       </button>
     </form>

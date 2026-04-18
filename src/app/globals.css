@@ -1,207 +1,426 @@
 @import "tailwindcss";
 
+/* =======================================================
+   Farm Share Ledger — design tokens
+   Ported from design_handoff_farm_share_ledger/styles.css
+   ======================================================= */
+
+:root {
+  --font-sans: var(--font-geist), -apple-system, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-serif: var(--font-instrument-serif), 'Times New Roman', serif;
+
+  /* Neutrals — LIGHT (default) */
+  --ink:        oklch(0.16 0.01 260);
+  --ink-2:      oklch(0.32 0.01 260);
+  --ink-3:      oklch(0.54 0.01 260);
+  --ink-4:      oklch(0.75 0.008 260);
+  --rule:       oklch(0.9 0.005 260);
+  --rule-2:     oklch(0.94 0.004 260);
+  --bg:         oklch(0.985 0.003 260);
+  --card:       oklch(1 0 0);
+  --surface-2:  oklch(0.97 0.004 260);
+
+  /* Accent (default Cobalt — swap the hue to theme) */
+  --accent:      oklch(0.5 0.15 255);
+  --accent-2:    oklch(0.58 0.16 255);
+  --accent-ink:  oklch(0.98 0.01 255);
+  --accent-wash: oklch(0.96 0.025 255);
+
+  --pos:       oklch(0.58 0.14 155);
+  --pos-wash:  oklch(0.96 0.025 155);
+  --neg:       oklch(0.58 0.15 28);
+  --neg-wash:  oklch(0.97 0.025 28);
+
+  --shadow-sm: 0 1px 2px oklch(0.16 0.01 260 / 0.04), 0 1px 0 oklch(0.16 0.01 260 / 0.02);
+  --shadow-md: 0 2px 4px oklch(0.16 0.01 260 / 0.04), 0 8px 24px oklch(0.16 0.01 260 / 0.06);
+  --shadow-lg: 0 8px 32px oklch(0.16 0.01 260 / 0.1);
+
+  --page-bg: oklch(0.97 0.003 90);
+}
+
+:root[data-theme="dark"] {
+  --ink:       oklch(0.97 0.005 260);
+  --ink-2:     oklch(0.82 0.008 260);
+  --ink-3:     oklch(0.62 0.01 260);
+  --ink-4:     oklch(0.42 0.012 260);
+  --rule:      oklch(0.26 0.008 260);
+  --rule-2:    oklch(0.22 0.006 260);
+  --bg:        oklch(0.15 0.008 260);
+  --card:      oklch(0.19 0.01 260);
+  --surface-2: oklch(0.22 0.01 260);
+
+  --accent-ink:  oklch(0.99 0.005 255);
+  --accent-wash: oklch(0.28 0.06 255);
+
+  --pos:      oklch(0.72 0.14 155);
+  --pos-wash: oklch(0.28 0.05 155);
+  --neg:      oklch(0.72 0.15 28);
+  --neg-wash: oklch(0.28 0.06 28);
+
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4), 0 1px 0 oklch(0 0 0 / 0.3);
+  --shadow-md: 0 2px 4px oklch(0 0 0 / 0.4), 0 8px 24px oklch(0 0 0 / 0.5);
+  --shadow-lg: 0 8px 32px oklch(0 0 0 / 0.6);
+
+  --page-bg: oklch(0.1 0.008 260);
+}
+
+/* Accent theme variants — apply to <html data-accent="..."> */
+:root[data-accent="forest"] { --accent: oklch(0.45 0.12 155); --accent-2: oklch(0.55 0.13 155); --accent-wash: oklch(0.96 0.025 155); }
+:root[data-accent="ink"]    { --accent: oklch(0.28 0.02 260); --accent-2: oklch(0.38 0.02 260); --accent-wash: oklch(0.95 0.005 260); }
+:root[data-accent="terra"]  { --accent: oklch(0.55 0.14 50);  --accent-2: oklch(0.63 0.15 50);  --accent-wash: oklch(0.96 0.025 50); }
+:root[data-accent="rose"]   { --accent: oklch(0.55 0.15 10);  --accent-2: oklch(0.63 0.16 10);  --accent-wash: oklch(0.96 0.025 10); }
+
+/* ================================================================
+   Tailwind v4 theme bridge — maps utility classes to our tokens.
+   This lets existing Tailwind classes (bg-card, text-ink, etc.) keep
+   working alongside the inline var(--token) style used in the handoff.
+   ================================================================ */
 @theme inline {
-  --font-sans: var(--font-dm-sans);
-  --font-display: var(--font-sora);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-display: var(--font-serif);
 
-  /* CRED-style dark premium palette */
-  --color-surface: #050506;
-  --color-surface-warm: #0c0c0f;
-  --color-surface-raised: #111114;
-  --color-surface-card: #151518;
-  --color-ink: #ebebf0;
-  --color-ink-muted: #8a8a9a;
-  --color-ink-faint: #4a4a58;
-  --color-border: #1c1c22;
-  --color-border-strong: #2a2a33;
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-rule: var(--rule);
+  --color-rule-2: var(--rule-2);
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-surface-2: var(--surface-2);
 
-  /* Primary — warm gold/cream (CRED signature) */
-  --color-primary: #d4a853;
-  --color-primary-light: #e8c878;
-  --color-primary-dark: #b8923f;
-  --color-primary-wash: rgba(212, 168, 83, 0.08);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
 
-  --color-success: #3dd68c;
-  --color-success-wash: rgba(61, 214, 140, 0.08);
+  --color-pos: var(--pos);
+  --color-pos-wash: var(--pos-wash);
+  --color-neg: var(--neg);
+  --color-neg-wash: var(--neg-wash);
 
-  --color-warning: #f0b429;
-  --color-warning-wash: rgba(240, 180, 41, 0.08);
-
-  --color-danger: #ef5f5f;
-  --color-danger-wash: rgba(239, 95, 95, 0.08);
-
-  --color-currency: #d4a853;
-  --color-currency-wash: rgba(212, 168, 83, 0.08);
-
-  /* Aliases */
-  --color-olive: var(--color-primary);
-  --color-olive-light: var(--color-primary-light);
-  --color-olive-wash: var(--color-primary-wash);
-  --color-amber: var(--color-warning);
-  --color-amber-wash: var(--color-warning-wash);
-  --color-terra: var(--color-danger);
-  --color-terra-wash: var(--color-danger-wash);
-  --color-sage: var(--color-success);
-  --color-sage-wash: var(--color-success-wash);
+  /* Back-compat aliases so screens not yet redesigned don't break */
+  --color-ink-muted: var(--ink-2);
+  --color-ink-faint: var(--ink-3);
+  --color-surface: var(--bg);
+  --color-surface-warm: var(--surface-2);
+  --color-surface-raised: var(--surface-2);
+  --color-surface-card: var(--card);
+  --color-border: var(--rule);
+  --color-border-strong: var(--rule-2);
+  --color-primary: var(--accent);
+  --color-primary-light: var(--accent-2);
+  --color-primary-dark: var(--accent);
+  --color-primary-wash: var(--accent-wash);
+  --color-success: var(--pos);
+  --color-success-wash: var(--pos-wash);
+  --color-warning: var(--accent);
+  --color-warning-wash: var(--accent-wash);
+  --color-danger: var(--neg);
+  --color-danger-wash: var(--neg-wash);
+  --color-currency: var(--accent);
+  --color-currency-wash: var(--accent-wash);
+  --color-olive: var(--accent);
+  --color-olive-light: var(--accent-2);
+  --color-olive-wash: var(--accent-wash);
+  --color-amber: var(--accent);
+  --color-amber-wash: var(--accent-wash);
+  --color-terra: var(--neg);
+  --color-terra-wash: var(--neg-wash);
+  --color-sage: var(--pos);
+  --color-sage-wash: var(--pos-wash);
 }
 
-* { font-family: var(--font-sans); }
-
-h1, h2, h3 {
-  font-family: var(--font-display);
-  letter-spacing: -0.02em;
+/* ================================================================
+   Base typography
+   ================================================================ */
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'ss01', 'ss02', 'cv11';
 }
 
-.font-display {
-  font-family: var(--font-display);
-  letter-spacing: -0.02em;
+.mono  { font-family: var(--font-mono); font-feature-settings: 'tnum', 'zero'; }
+.serif { font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.015em; }
+.tnum  { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
 
-/* ============================================================
-   CRED-style component system
-   ============================================================ */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--ink-4); border-radius: 10px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-track { background: transparent; }
 
-.card {
-  background: var(--color-surface-card);
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
+/* ================================================================
+   Animations
+   ================================================================ */
+@keyframes rise {
+  from { transform: translateY(8px); opacity: 0; filter: blur(4px); }
+  to   { transform: translateY(0); opacity: 1; filter: blur(0); }
+}
+@keyframes slideInR {
+  from { transform: translateX(16px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes pop {
+  0%   { transform: scale(0.94); opacity: 0; }
+  60%  { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.3; transform: scale(1.4); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
 }
 
-.card-surface { /* alias */
-  background: var(--color-surface-card);
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
-}
+.rise    { animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.slide-r { animation: slideInR 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.pop     { animation: pop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.stagger { animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 50ms); }
 
-.card-glow {
-  background: var(--color-surface-card);
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
-  box-shadow: 0 0 60px -20px rgba(212, 168, 83, 0.08);
+/* View Transitions */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.46s;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+::view-transition-old(screen) { animation: fadeOut 0.22s ease-out both; }
+::view-transition-new(screen) { animation: fadeSlideIn 0.46s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@keyframes fadeOut     { to   { opacity: 0; transform: translateY(-4px); } }
+@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
-.input-warm {
-  background: var(--color-surface-warm);
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-  padding: 14px 16px;
-  font-size: 15px;
-  color: var(--color-ink);
-  transition: border-color 250ms ease, box-shadow 250ms ease;
-  width: 100%;
-}
-.input-warm:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.08);
-}
-.input-warm::placeholder {
-  color: var(--color-ink-faint);
+/* Keep site-nav frozen across transitions */
+::view-transition-group(site-nav) { animation: none; z-index: 100; }
+::view-transition-old(site-nav)   { display: none; }
+::view-transition-new(site-nav)   { animation: none; }
+
+/* ================================================================
+   Buttons
+   ================================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s, background 0.2s, border-color 0.2s, color 0.2s;
+  position: relative;
+  overflow: hidden;
+  color: var(--ink);
+  background: transparent;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: #050506;
-  border-radius: 14px;
-  padding: 14px 24px;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 14px;
-  letter-spacing: 0.02em;
-  transition: opacity 200ms ease, transform 250ms ease;
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: var(--shadow-sm);
 }
-.btn-primary:hover:not(:disabled) { opacity: 0.88; }
-.btn-primary:active:not(:disabled) { transform: scale(0.97); transition: transform 100ms ease; }
-.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-primary:active { transform: translateY(0); }
 
-.btn-secondary {
-  background: var(--color-surface-warm);
-  color: var(--color-ink-muted);
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-  padding: 10px 18px;
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 14px;
-  transition: border-color 200ms ease, color 200ms ease, transform 250ms ease;
+.btn-accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-sm);
 }
-.btn-secondary:hover { border-color: var(--color-border-strong); color: var(--color-ink); }
-.btn-secondary:active { transform: scale(0.97); transition: transform 100ms ease; }
+.btn-accent:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 20px oklch(0.5 0.15 255 / 0.25); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+}
+.btn-ghost:hover { background: var(--surface-2); border-color: var(--ink-4); }
 
 .btn-danger {
   background: transparent;
-  color: var(--color-danger);
-  border: 1px solid rgba(239, 95, 95, 0.15);
-  border-radius: 14px;
-  padding: 14px 24px;
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 14px;
-  transition: background-color 200ms ease, transform 250ms ease;
+  color: var(--neg);
+  border: 1px solid color-mix(in oklch, var(--neg) 20%, transparent);
 }
-.btn-danger:hover { background: var(--color-danger-wash); }
-.btn-danger:active { transform: scale(0.97); transition: transform 100ms ease; }
+.btn-danger:hover { background: var(--neg-wash); }
+
+.btn-secondary { /* alias for ghost */
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+}
+.btn-secondary:hover { background: var(--surface-2); border-color: var(--ink-4); }
+
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-press:active:not(:disabled) { transform: scale(0.98); }
+
+/* ================================================================
+   Inputs
+   ================================================================ */
+input:focus, textarea:focus, button:focus, select:focus { outline: none; }
+input, textarea, select { font-family: inherit; color: inherit; background: transparent; border: none; }
+
+.focus-ring { transition: box-shadow 0.2s, border-color 0.2s; }
+.focus-ring:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 15%, transparent);
+  border-color: var(--accent) !important;
+}
+
+.input-warm {
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--ink);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+  width: 100%;
+}
+.input-warm:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 15%, transparent);
+}
+.input-warm::placeholder { color: var(--ink-4); }
+
+/* ================================================================
+   Cards
+   ================================================================ */
+.card {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s, border-color 0.25s;
+}
+.card-surface { /* alias */
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+}
+.card-glow {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  box-shadow: 0 0 60px -20px color-mix(in oklch, var(--accent) 15%, transparent);
+}
+.card-interactive { cursor: pointer; }
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--ink-4);
+}
+.card-hover { transition: transform 250ms ease, border-color 250ms ease; }
+.card-hover:hover { transform: translateY(-2px); border-color: var(--ink-4); }
+
+/* ================================================================
+   Effects
+   ================================================================ */
+.shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 40%, oklch(1 0 0 / 0.15) 50%, transparent 60%);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+  pointer-events: none;
+}
+.shimmer:hover::before { transform: translateX(100%); }
+
+.grid-bg {
+  background-image:
+    linear-gradient(to right, color-mix(in oklch, var(--rule) 60%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklch, var(--rule) 60%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.mesh {
+  background:
+    radial-gradient(at 20% 0%, color-mix(in oklch, var(--accent) 20%, transparent) 0, transparent 50%),
+    radial-gradient(at 80% 100%, color-mix(in oklch, var(--accent) 8%, transparent) 0, transparent 40%);
+}
+
+/* Range slider */
+input[type=range].bright {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--accent) 0 var(--pct, 50%), var(--rule) var(--pct, 50%) 100%);
+  outline: none;
+  cursor: pointer;
+}
+input[type=range].bright::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid var(--accent);
+  box-shadow: 0 2px 6px color-mix(in oklch, var(--accent) 30%, transparent);
+  cursor: grab;
+  transition: transform 0.15s;
+}
+input[type=range].bright::-webkit-slider-thumb:hover  { transform: scale(1.15); }
+input[type=range].bright::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.2); }
+
+/* ================================================================
+   Badges / pills
+   ================================================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.badge-primary { background: var(--accent-wash); color: var(--accent); }
+.badge-success { background: var(--pos-wash); color: var(--pos); }
+.badge-danger  { background: var(--neg-wash); color: var(--neg); }
+.badge-muted   { background: var(--surface-2); color: var(--ink-3); }
 
 .section-label {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-ink-faint);
+  color: var(--ink-3);
 }
 
-.badge { display: inline-flex; align-items: center; border-radius: 100px; padding: 3px 10px; font-size: 11px; font-weight: 600; font-family: var(--font-display); }
-.badge-primary { background: var(--color-primary-wash); color: var(--color-primary); }
-.badge-success { background: var(--color-success-wash); color: var(--color-success); }
-.badge-warning { background: var(--color-warning-wash); color: var(--color-warning); }
-.badge-danger { background: var(--color-danger-wash); color: var(--color-danger); }
-
-/* ============================================================
-   View Transition Recipes
-   ============================================================ */
-
-:root { --duration-exit: 150ms; --duration-enter: 210ms; --duration-move: 350ms; }
-
-@keyframes fade { from { filter: blur(3px); opacity: 0; } to { filter: blur(0); opacity: 1; } }
-@keyframes slide { from { translate: var(--slide-offset); } to { translate: 0; } }
-@keyframes slide-y { from { transform: translateY(var(--slide-y-offset, 10px)); } to { transform: translateY(0); } }
-
-::view-transition-old(.fade-out) { animation: var(--duration-exit) ease-in fade reverse; }
-::view-transition-new(.fade-in) { animation: var(--duration-enter) ease-out var(--duration-exit) both fade; }
-::view-transition-old(.slide-down) { animation: var(--duration-exit) ease-out both fade reverse, var(--duration-exit) ease-out both slide-y reverse; }
-::view-transition-new(.slide-up) { animation: var(--duration-enter) ease-in var(--duration-exit) both fade, var(--duration-move) ease-in both slide-y; }
-::view-transition-new(.slide-from-right) { --slide-offset: 60px; animation: var(--duration-enter) ease-out var(--duration-exit) both fade, var(--duration-move) ease-in-out both slide; }
-::view-transition-old(.slide-to-left) { --slide-offset: -60px; animation: var(--duration-exit) ease-in both fade reverse, var(--duration-move) ease-in-out both slide reverse; }
-::view-transition-new(.slide-from-left) { --slide-offset: -60px; animation: var(--duration-enter) ease-out var(--duration-exit) both fade, var(--duration-move) ease-in-out both slide; }
-::view-transition-old(.slide-to-right) { --slide-offset: 60px; animation: var(--duration-exit) ease-in both fade reverse, var(--duration-move) ease-in-out both slide reverse; }
-::view-transition-group(site-nav) { animation: none; z-index: 100; }
-::view-transition-old(site-nav) { display: none; }
-::view-transition-new(site-nav) { animation: none; }
-
-/* ============================================================
-   Micro-Animations
-   ============================================================ */
-
-.btn-press { transition: transform 250ms ease; }
-.btn-press:active:not(:disabled) { transform: scale(0.97); transition: transform 100ms ease; }
-
-.card-hover { transition: transform 250ms ease, border-color 250ms ease; }
-.card-hover:hover { transform: translateY(-3px); border-color: var(--color-border-strong); }
-
-.dropdown-enter { animation: dropdown-in 150ms ease-out; }
-@keyframes dropdown-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-
-@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-.shimmer {
-  background: linear-gradient(90deg, var(--color-surface-card) 25%, var(--color-border) 50%, var(--color-surface-card) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 2s ease-in-out infinite;
-  border-radius: 16px;
-}
-
+/* ================================================================
+   Reduced motion
+   ================================================================ */
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(*), ::view-transition-new(*), ::view-transition-group(*) { animation-duration: 0s !important; animation-delay: 0s !important; }
-  .btn-press, .btn-primary, .btn-secondary, .btn-danger, .card-hover { transition: none !important; }
-  .dropdown-enter, .shimmer { animation: none !important; }
+  ::view-transition-old(*), ::view-transition-new(*), ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+  .rise, .slide-r, .pop, .stagger, .shimmer { animation: none !important; }
+  .btn, .card, .card-interactive, .card-hover { transition: none !important; }
 }

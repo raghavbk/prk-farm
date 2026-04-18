@@ -11,7 +11,7 @@ export function CreateTenantForm() {
       <label htmlFor="name" className="section-label">Create a new farm</label>
       <div className="mt-3 flex flex-col sm:flex-row gap-3">
         <input type="text" id="name" name="name" required placeholder="e.g., Mango Grove Farm" className="input-warm sm:flex-1" />
-        <button type="submit" disabled={pending} className="btn-primary btn-press whitespace-nowrap">
+        <button type="submit" disabled={pending} className="btn btn-primary btn-press whitespace-nowrap">
           {pending ? "Creating..." : "Create"}
         </button>
       </div>

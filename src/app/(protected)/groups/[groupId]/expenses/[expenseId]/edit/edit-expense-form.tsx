@@ -112,7 +112,7 @@ export function EditExpenseForm({ expense, groupId, members }: Props) {
         <button
           type="submit"
           disabled={pending}
-          className="w-full btn-primary btn-press"
+          className="btn btn-primary btn-press w-full"
         >
           {pending ? "Saving..." : "Update Expense"}
         </button>
@@ -123,7 +123,7 @@ export function EditExpenseForm({ expense, groupId, members }: Props) {
         <input type="hidden" name="groupId" value={groupId} />
         <button
           type="submit"
-          className="w-full btn-danger"
+          className="btn btn-danger w-full"
         >
           Delete Expense
         </button>

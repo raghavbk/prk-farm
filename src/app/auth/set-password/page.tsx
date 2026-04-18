@@ -1,44 +1,81 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SetPasswordForm } from "./set-password-form";
+import { I } from "@/components/ui/icons";
 
 export default async function SetPasswordPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // Must have a session (from the invite link)
+  // Must have a session (from the invite link).
   if (!user) redirect("/login");
 
   const name = user.user_metadata?.display_name || user.user_metadata?.full_name || "there";
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center px-6 bg-[#050506]">
-      <div className="pointer-events-none fixed inset-0">
-        <div
-          className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full opacity-[0.04]"
-          style={{ background: "radial-gradient(circle, #3dd68c, transparent 70%)" }}
-        />
-      </div>
-
-      <div className="relative w-full max-w-[380px]">
-        <div className="flex justify-center">
-          <div className="h-12 w-12 rounded-2xl bg-success/10 flex items-center justify-center">
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-success">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "var(--bg)",
+        color: "var(--ink)",
+        display: "flex",
+        justifyContent: "center",
+        padding: "clamp(24px, 4vw, 48px)",
+      }}
+    >
+      <div className="mesh" style={{ position: "fixed", inset: 0, pointerEvents: "none", opacity: 0.6 }} />
+      <div style={{ position: "relative", width: "100%", maxWidth: 420, alignSelf: "center" }}>
+        <div style={{ marginBottom: 24 }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "6px 12px 6px 8px",
+              borderRadius: 999,
+              background: "var(--pos-wash)",
+              color: "var(--pos)",
+            }}
+          >
+            <span
+              aria-hidden
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                background: "var(--pos)",
+                color: "var(--bg)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <I.check size={12} />
+            </span>
+            <span className="eyebrow" style={{ color: "var(--pos)" }}>
+              Invite accepted
+            </span>
+          </span>
         </div>
 
-        <h1 className="mt-6 text-center font-display text-[28px] font-bold text-white leading-tight">
-          Welcome, {name}!
+        <h1
+          className="serif"
+          style={{
+            fontSize: "clamp(32px, 5vw, 44px)",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.1,
+            margin: "0 0 12px",
+          }}
+        >
+          Welcome, <em>{name}</em>.
         </h1>
-        <p className="mt-3 text-center text-sm text-ink-faint leading-relaxed">
-          Set a password to complete your account setup
+        <p style={{ fontSize: 14, color: "var(--ink-3)", margin: "0 0 32px", maxWidth: 380 }}>
+          Set a password to finish your account setup. You&rsquo;ll use this the next time you sign in.
         </p>
 
-        <div className="mt-10">
-          <SetPasswordForm />
-        </div>
+        <SetPasswordForm />
       </div>
     </main>
   );

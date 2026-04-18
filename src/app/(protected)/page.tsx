@@ -4,8 +4,46 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ViewTransition } from "react";
-import { DashboardSummary } from "@/components/dashboard-summary";
-import { RecentExpenses } from "@/components/recent-expenses";
+import { AnimatedInr } from "@/components/ui/animated-inr";
+import { MiniStat } from "@/components/ui/mini-stat";
+import { SectionHeader } from "@/components/ui/section-header";
+import { GroupCard, type GroupCardMember } from "@/components/ui/group-card";
+import { ExpenseRow } from "@/components/ui/expense-row";
+import { I } from "@/components/ui/icons";
+import { firstName } from "@/lib/format";
+
+function weekBuckets(rows: { date: string; amount: number }[]): { total: number; spark: number[] } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days: number[] = new Array(7).fill(0);
+  let total = 0;
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() - 6);
+  for (const r of rows) {
+    const d = new Date(r.date);
+    d.setHours(0, 0, 0, 0);
+    if (d < cutoff || d > today) continue;
+    const offset = Math.round((d.getTime() - cutoff.getTime()) / 86_400_000);
+    if (offset < 0 || offset > 6) continue;
+    const amt = Number(r.amount) || 0;
+    days[offset] += amt;
+    total += amt;
+  }
+  return { total, spark: days };
+}
+
+type BalanceRow = { group_id: string; creditor_id: string; debtor_id: string; net_amount: number };
+
+function greet() {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+}
+
+function formatDateHeader(d: Date) {
+  const weekday = d.toLocaleDateString("en-IN", { weekday: "short" });
+  const day = d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return `${weekday} · ${day}`;
+}
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -19,38 +57,80 @@ export default async function DashboardPage() {
     supabase.rpc("tenant_summary", { p_tenant_id: tenantId, p_user_id: user.id }),
     supabase.from("profiles").select("display_name").eq("id", user.id).single(),
     supabase.from("tenants").select("name").eq("id", tenantId).single(),
-    supabase.from("groups").select("id, name, group_members(user_id)").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
+    supabase
+      .from("groups")
+      .select("id, name, created_at, updated_at, group_members(user_id, profiles(id, display_name))")
+      .eq("tenant_id", tenantId)
+      .order("updated_at", { ascending: false }),
   ]);
+
   const totals = summaryRes.data?.[0] ?? { total_you_owe: 0, total_owed_to_you: 0 };
+  const totalYouOwe = Number(totals.total_you_owe) || 0;
+  const totalOwedToYou = Number(totals.total_owed_to_you) || 0;
+  const net = totalOwedToYou - totalYouOwe;
   const profile = profileRes.data;
   const tenant = tenantRes.data;
-  const groups = groupsRes.data;
+  type GroupRow = {
+    id: string;
+    name: string;
+    created_at: string;
+    updated_at: string;
+    group_members: { user_id: string; profiles: { id: string; display_name: string } | null }[] | null;
+  };
+  const groups: GroupRow[] = (groupsRes.data ?? []) as unknown as GroupRow[];
+  const groupIds = groups.map((g) => g.id);
 
-  const groupIds = (groups ?? []).map((g) => g.id);
-  let recentExpenses: { id: string; group_id: string; description: string; amount: number; date: string; paidByName: string; groupName: string }[] = [];
-  if (groupIds.length > 0) {
-    const { data: expenses } = await supabase
-      .from("expenses")
-      .select("id, group_id, description, amount, date, profiles!expenses_paid_by_fkey(display_name), groups!inner(name)")
-      .in("group_id", groupIds)
-      .order("date", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(8);
-    recentExpenses = (expenses ?? []).map((e) => ({
-      id: e.id, group_id: e.group_id, description: e.description, amount: e.amount, date: e.date,
-      paidByName: (e.profiles as unknown as { display_name: string })?.display_name ?? "Unknown",
-      groupName: (e.groups as unknown as { name: string })?.name ?? "Unknown",
-    }));
+  // Recent expenses + per-group totals/expense count + per-group my balance.
+  const [expensesRes, balancesRes, groupTotalsRes] = groupIds.length
+    ? await Promise.all([
+        supabase
+          .from("expenses")
+          .select("id, group_id, description, amount, date, paid_by, profiles!expenses_paid_by_fkey(display_name), groups!inner(name)")
+          .in("group_id", groupIds)
+          .order("date", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(6),
+        supabase.from("group_balances").select("*").in("group_id", groupIds),
+        supabase.from("expenses").select("group_id, amount, date").in("group_id", groupIds),
+      ])
+    : [{ data: [] as unknown[] }, { data: [] as BalanceRow[] }, { data: [] as { group_id: string; amount: number; date: string }[] }];
+
+  type ExpenseRowRaw = {
+    id: string;
+    group_id: string;
+    description: string;
+    amount: number;
+    date: string;
+    paid_by: string;
+    profiles: { display_name: string } | null;
+    groups: { name: string } | null;
+  };
+  const recentExpenses = (expensesRes.data ?? []) as ExpenseRowRaw[];
+  const balances = (balancesRes.data ?? []) as BalanceRow[];
+  const groupExpenseTotals = (groupTotalsRes.data ?? []) as { group_id: string; amount: number; date: string }[];
+  const week = weekBuckets(groupExpenseTotals);
+
+  const totalsByGroup = new Map<string, { total: number; count: number }>();
+  for (const e of groupExpenseTotals) {
+    const cur = totalsByGroup.get(e.group_id) ?? { total: 0, count: 0 };
+    cur.total += Number(e.amount);
+    cur.count += 1;
+    totalsByGroup.set(e.group_id, cur);
   }
 
-  const firstName = profile?.display_name?.split(" ")[0] ?? "there";
-  const groupGradients = [
-    "linear-gradient(135deg, #111118 0%, #16213e 100%)",
-    "linear-gradient(135deg, #111118 0%, #0f2027 100%)",
-    "linear-gradient(135deg, #111118 0%, #1e1225 100%)",
-    "linear-gradient(135deg, #111118 0%, #1f1a0e 100%)",
-  ];
-  const groupAccents = ["#818cf8", "#34d399", "#f472b6", "#fbbf24"];
+  const myBalanceByGroup = new Map<string, number>();
+  for (const b of balances) {
+    if (b.creditor_id !== user.id && b.debtor_id !== user.id) continue;
+    const cur = myBalanceByGroup.get(b.group_id) ?? 0;
+    const delta = b.creditor_id === user.id ? Number(b.net_amount) : -Number(b.net_amount);
+    myBalanceByGroup.set(b.group_id, cur + delta);
+  }
+
+  const greeting = greet();
+  const first = firstName(profile?.display_name);
+  const today = formatDateHeader(new Date());
+  const showDesktopLogExpense = groups.length > 0;
+  const firstGroupId = groups[0]?.id;
 
   return (
     <ViewTransition
@@ -58,72 +138,231 @@ export default async function DashboardPage() {
       exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
       default="none"
     >
-    <main className="mx-auto w-full max-w-[1120px] px-5 sm:px-8 py-8 sm:py-10">
-      {/* Header — stacks on mobile */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[13px] font-medium text-ink-faint">{tenant?.name}</p>
-          <h1 className="mt-1 font-display text-2xl sm:text-[32px] font-bold text-white leading-tight">
-            Hi, {firstName}
-          </h1>
-        </div>
-        <Link href="/groups/new" transitionTypes={["nav-forward"]} className="btn-primary btn-press text-[13px] self-start sm:self-auto">
-          + New Group
-        </Link>
-      </div>
-
-      {/* Stats */}
-      <section className="mt-8">
-        <DashboardSummary totalYouOwe={Number(totals.total_you_owe)} totalOwedToYou={Number(totals.total_owed_to_you)} />
-      </section>
-
-      {/* Content — stacks on mobile, 2-col on desktop */}
-      <div className="mt-10 grid gap-8 lg:grid-cols-5">
-        {/* Groups */}
-        <section className="lg:col-span-3">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="font-display text-[15px] font-semibold text-ink-muted">Your Groups</h2>
-            <Link href="/groups" transitionTypes={["nav-forward"]} className="text-[12px] font-medium text-primary hover:text-primary-light transition-colors">
-              View all →
-            </Link>
-          </div>
-          {!groups || groups.length === 0 ? (
-            <div className="card p-10 sm:p-12 text-center">
-              <div className="mx-auto h-14 w-14 rounded-2xl bg-primary-wash flex items-center justify-center mb-4">
-                <span className="font-display text-2xl text-primary">+</span>
+      <div style={{ viewTransitionName: "screen" }}>
+        <div
+          className="mx-auto"
+          style={{ maxWidth: 1120, padding: "clamp(18px, 3vw, 32px) clamp(18px, 4vw, 44px) 56px" }}
+        >
+          {/* Top bar */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              marginBottom: 24,
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 6 }}>
+                {today} · {tenant?.name ?? "Farm"}
               </div>
-              <p className="font-display text-[15px] font-semibold text-ink-muted">No groups yet</p>
-              <p className="mt-2 text-[13px] text-ink-faint max-w-[240px] mx-auto">Create your first group to start splitting expenses</p>
-              <Link href="/groups/new" transitionTypes={["nav-forward"]} className="btn-primary btn-press inline-block mt-6 text-[13px]">
-                Create Group
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: "clamp(18px, 2.2vw, 20px)", fontWeight: 500, color: "var(--ink-2)" }}>
+                  {greeting},
+                </span>
+                <span
+                  className="serif"
+                  style={{
+                    fontSize: "clamp(28px, 4.5vw, 34px)",
+                    color: "var(--ink)",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  <em>{first}</em>
+                </span>
+              </div>
+            </div>
+            <div className="hidden md:flex" style={{ gap: 8 }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ width: 40, padding: 0 }}
+                aria-label="Notifications"
+              >
+                <I.bell size={16} />
+              </button>
+              {showDesktopLogExpense && firstGroupId && (
+                <Link
+                  href={`/groups/${firstGroupId}/expenses/new`}
+                  className="btn btn-accent shimmer"
+                >
+                  <I.plus size={14} /> Log expense
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Hero */}
+          <div
+            className="rise"
+            style={{
+              position: "relative",
+              overflow: "hidden",
+              padding: "clamp(20px, 3.5vw, 40px) clamp(20px, 4vw, 44px)",
+              borderRadius: 20,
+              background: "var(--card)",
+              border: "1px solid var(--rule)",
+              marginBottom: 32,
+            }}
+          >
+            <div className="mesh" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
+            <div
+              style={{
+                position: "relative",
+                display: "flex",
+                gap: 32,
+                flexWrap: "wrap",
+                alignItems: "flex-end",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ flex: "1 1 280px", minWidth: 0 }}>
+                <div className="eyebrow" style={{ marginBottom: 14 }}>
+                  Your net position
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div
+                    className="serif"
+                    style={{
+                      fontSize: "clamp(56px, 10vw, 96px)",
+                      lineHeight: 0.95,
+                      color: net >= 0 ? "var(--pos)" : "var(--neg)",
+                      letterSpacing: "-0.03em",
+                    }}
+                  >
+                    <AnimatedInr value={Math.abs(net)} />
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "clamp(13px, 1.6vw, 18px)",
+                      color: "var(--ink-3)",
+                      paddingBottom: 8,
+                    }}
+                  >
+                    {net === 0 ? "all squared up" : net > 0 ? "in your favor" : "you owe"}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 20, marginTop: 24, flexWrap: "wrap", alignItems: "center" }}>
+                  <MiniStat label="People owe you" amount={totalOwedToYou} tone="pos" />
+                  <div style={{ width: 1, alignSelf: "stretch", background: "var(--rule)" }} />
+                  <MiniStat label="You owe" amount={totalYouOwe} tone="neg" />
+                  {week.total > 0 && (
+                    <>
+                      <div style={{ width: 1, alignSelf: "stretch", background: "var(--rule)" }} />
+                      <MiniStat label="This week" amount={week.total} tone="neutral" spark={week.spark} />
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="hidden md:flex" style={{ flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
+                <Link href="/balances" className="btn btn-ghost">
+                  View balances <I.arrow size={12} />
+                </Link>
+                <Link href="/timeline" className="btn btn-ghost">
+                  Timeline <I.arrow size={12} />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Groups */}
+          <SectionHeader
+            title="Groups"
+            trailing={`${groups.length} ${groups.length === 1 ? "active" : "active"}`}
+            actionLabel="View all"
+            actionHref="/groups"
+          />
+          {groups.length === 0 ? (
+            <div className="card" style={{ padding: 40, textAlign: "center", marginBottom: 32 }}>
+              <div className="serif" style={{ fontSize: 22, color: "var(--ink)", marginBottom: 6 }}>
+                No groups yet
+              </div>
+              <p style={{ color: "var(--ink-3)", fontSize: 13, margin: "0 0 20px" }}>
+                Create your first group to start splitting expenses.
+              </p>
+              <Link href="/groups/new" className="btn btn-accent">
+                <I.plus size={14} /> Create group
               </Link>
             </div>
           ) : (
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-              {groups.map((g, i) => (
-                <Link
-                  key={g.id}
-                  href={`/groups/${g.id}`}
-                  transitionTypes={["nav-forward"]}
-                  className="group relative rounded-2xl p-5 overflow-hidden card-hover border border-white/[0.04]"
-                  style={{ background: groupGradients[i % groupGradients.length] }}
-                >
-                  <div className="absolute top-5 right-5 h-2 w-2 rounded-full" style={{ background: groupAccents[i % groupAccents.length] }} />
-                  <p className="font-display text-[17px] font-bold text-white/90 leading-snug">{g.name}</p>
-                  <p className="mt-3 text-[12px] text-white/30 font-medium">{g.group_members?.length ?? 0} members</p>
-                </Link>
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+                marginBottom: 32,
+                gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 320px), 1fr))",
+              }}
+            >
+              {groups.slice(0, 6).map((g, i) => {
+                const members: GroupCardMember[] = (g.group_members ?? [])
+                  .map((gm) =>
+                    gm.profiles ? { id: gm.profiles.id, name: gm.profiles.display_name } : null
+                  )
+                  .filter((m): m is GroupCardMember => m !== null);
+                const totals = totalsByGroup.get(g.id) ?? { total: 0, count: 0 };
+                const myBal = myBalanceByGroup.get(g.id);
+                const updated = new Date(g.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+                return (
+                  <GroupCard
+                    key={g.id}
+                    id={g.id}
+                    name={g.name}
+                    members={members}
+                    expenseCount={totals.count}
+                    totalInr={totals.total}
+                    myBalance={myBal ?? null}
+                    updatedLabel={updated}
+                    idx={i}
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          {/* Recent */}
+          <SectionHeader
+            title="Recent activity"
+            trailing="last 7 days"
+            actionLabel="Timeline"
+            actionHref="/timeline"
+          />
+          {recentExpenses.length === 0 ? (
+            <div className="card" style={{ padding: 32, textAlign: "center" }}>
+              <div className="eyebrow" style={{ marginBottom: 6 }}>
+                No expenses yet
+              </div>
+              <p style={{ color: "var(--ink-3)", fontSize: 13, margin: 0 }}>
+                When someone logs one, it&rsquo;ll appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="card" style={{ overflow: "hidden", padding: 0 }}>
+              {recentExpenses.map((e, i) => (
+                <ExpenseRow
+                  key={e.id}
+                  href={`/groups/${e.group_id}`}
+                  description={e.description}
+                  amount={Number(e.amount)}
+                  date={e.date}
+                  paidById={e.paid_by}
+                  paidByName={e.profiles?.display_name ?? "Unknown"}
+                  groupName={e.groups?.name}
+                  isLast={i === recentExpenses.length - 1}
+                />
               ))}
             </div>
           )}
-        </section>
-
-        {/* Activity */}
-        <section className="lg:col-span-2">
-          <h2 className="font-display text-[15px] font-semibold text-ink-muted mb-5">Recent Activity</h2>
-          <RecentExpenses expenses={recentExpenses} />
-        </section>
+        </div>
       </div>
-    </main>
     </ViewTransition>
   );
 }

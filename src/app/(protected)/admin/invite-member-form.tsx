@@ -21,7 +21,7 @@ export function InviteMemberForm() {
             <option value="member">Member</option>
             <option value="owner">Admin</option>
           </select>
-          <button type="submit" disabled={pending} className="btn-primary btn-press flex-1">
+          <button type="submit" disabled={pending} className="btn btn-accent btn-press flex-1">
             {pending ? "Inviting..." : "Invite"}
           </button>
         </div>

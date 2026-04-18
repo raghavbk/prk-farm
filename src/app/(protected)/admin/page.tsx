@@ -74,46 +74,111 @@ export default async function AdminPage() {
       exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
       default="none"
     >
-    <main className="mx-auto w-full max-w-[1120px] px-5 sm:px-8 py-8 sm:py-10">
-      <div>
-        <h1 className="font-display text-2xl sm:text-[32px] font-bold text-white">Farm Admin</h1>
-        <p className="mt-1 text-[13px] text-ink-faint">
-          Manage <span className="font-semibold text-ink">{tenant?.name}</span>
-        </p>
+    <main
+      className="mx-auto"
+      style={{ maxWidth: 1120, padding: "clamp(20px, 3vw, 32px) clamp(20px, 4vw, 40px) 56px", width: "100%" }}
+    >
+      {/* Header */}
+      <div className="eyebrow" style={{ marginBottom: 8 }}>
+        Tenant administration
       </div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: 16,
+          flexWrap: "wrap",
+          marginBottom: 10,
+        }}
+      >
+        <h1
+          className="serif"
+          style={{
+            fontSize: "clamp(28px, 5vw, 44px)",
+            margin: 0,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.15,
+            color: "var(--ink)",
+          }}
+        >
+          Who belongs to <em>{tenant?.name}</em>.
+        </h1>
+      </div>
+      <p
+        style={{
+          fontSize: 14,
+          color: "var(--ink-3)",
+          margin: "0 0 28px",
+          maxWidth: 560,
+        }}
+      >
+        Only Owners and Admins can manage who has access. Invites expire after 7 days.
+      </p>
 
       {/* Stats */}
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="card px-5 py-4 text-center">
-          <p className="font-display text-2xl font-bold text-primary">{memberList.length}</p>
-          <p className="text-[12px] text-ink-faint font-medium mt-1">Members</p>
-        </div>
-        <div className="card px-5 py-4 text-center">
-          <p className="font-display text-2xl font-bold text-success">{groupCount ?? 0}</p>
-          <p className="text-[12px] text-ink-faint font-medium mt-1">Groups</p>
-        </div>
-        <div className="card px-5 py-4 text-center">
-          <p className="font-display text-2xl font-bold text-warning">{expenseCount}</p>
-          <p className="text-[12px] text-ink-faint font-medium mt-1">Expenses</p>
-        </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 12,
+          marginBottom: 28,
+        }}
+      >
+        <StatCard label="Members" value={memberList.length} />
+        <StatCard label="Groups" value={groupCount ?? 0} />
+        <StatCard label="Expenses" value={expenseCount} />
       </div>
 
       {/* Invite */}
-      <section className="mt-8">
-        <h2 className="section-label">Invite Member</h2>
-        <div className="mt-3 card p-5 sm:p-6">
-          <InviteMemberForm />
-        </div>
-      </section>
+      <div className="eyebrow" style={{ marginBottom: 10 }}>
+        Invite people
+      </div>
+      <div className="card" style={{ padding: 20, marginBottom: 28 }}>
+        <InviteMemberForm />
+      </div>
 
       {/* Members */}
-      <section className="mt-8">
-        <h2 className="section-label">Members ({memberList.length})</h2>
-        <div className="mt-3">
-          <MemberList members={memberList} currentUserId={user.id} />
-        </div>
-      </section>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          marginBottom: 10,
+          gap: 10,
+        }}
+      >
+        <h2 className="serif" style={{ fontSize: 22, margin: 0, letterSpacing: "-0.015em" }}>
+          Members
+        </h2>
+        <span className="eyebrow" style={{ color: "var(--ink-4)" }}>
+          {memberList.length} {memberList.length === 1 ? "person" : "people"}
+        </span>
+      </div>
+      <MemberList members={memberList} currentUserId={user.id} />
     </main>
     </ViewTransition>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div
+      className="card"
+      style={{
+        padding: "16px 18px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+      }}
+    >
+      <div className="eyebrow">{label}</div>
+      <div
+        className="serif"
+        style={{ fontSize: 28, lineHeight: 1, letterSpacing: "-0.01em", color: "var(--ink)" }}
+      >
+        {value}
+      </div>
+    </div>
   );
 }

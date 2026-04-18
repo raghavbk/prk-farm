@@ -67,7 +67,7 @@ export function EditGroupForm({
         <button
           type="submit"
           disabled={namePending}
-          className="btn-primary btn-press text-sm"
+          className="btn btn-primary btn-press"
         >
           {namePending ? "Saving..." : "Update Name"}
         </button>
@@ -93,7 +93,7 @@ export function EditGroupForm({
         <button
           type="submit"
           disabled={ownerPending || !isOwnershipValid}
-          className="w-full btn-primary btn-press"
+          className="btn btn-primary btn-press w-full"
         >
           {ownerPending ? "Saving..." : "Update Members & Ownership"}
         </button>

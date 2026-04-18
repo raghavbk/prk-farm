@@ -1,30 +1,48 @@
 import type { Metadata, Viewport } from "next";
-import { Sora, DM_Sans } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
-const sora = Sora({
+const geist = Geist({
   subsets: ["latin"],
-  variable: "--font-sora",
-  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-geist",
+  weight: ["300", "400", "500", "600", "700"],
 });
 
-const dmSans = DM_Sans({
+const geistMono = Geist_Mono({
   subsets: ["latin"],
-  variable: "--font-dm-sans",
+  variable: "--font-geist-mono",
+  weight: ["300", "400", "500", "600"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-instrument-serif",
+  weight: "400",
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
-  title: "VibeNaturals",
-  description: "Track shared farm expenses and balances",
+  title: "Farm Share Ledger",
+  description: "A quieter place for the farm's money.",
 };
-
-// Region pinning for functions lives in vercel.json — root-layout
-// preferredRegion is overridden by Fluid Compute's smart routing.
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
 };
+
+// Runs before first paint to apply the user's saved theme and prevent FOUC.
+const themeBootstrap = `
+(function(){
+  try {
+    var saved = localStorage.getItem('farm-theme');
+    var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+    var accent = localStorage.getItem('farm-accent');
+    if (accent) document.documentElement.setAttribute('data-accent', accent);
+  } catch (e) {}
+})();
+`;
 
 export default function RootLayout({
   children,
@@ -32,10 +50,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${sora.variable} ${dmSans.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-[#050506] text-white antialiased">
-        {children}
-      </body>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full`}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
+      <body className="min-h-full flex flex-col antialiased">{children}</body>
     </html>
   );
 }

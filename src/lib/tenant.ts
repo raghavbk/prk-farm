@@ -17,3 +17,8 @@ export async function setActiveTenantId(tenantId: string): Promise<void> {
     maxAge: 60 * 60 * 24 * 365, // 1 year
   });
 }
+
+export async function clearActiveTenantId(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete(ACTIVE_TENANT_COOKIE);
+}

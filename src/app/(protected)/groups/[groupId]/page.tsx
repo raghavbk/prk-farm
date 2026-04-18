@@ -4,8 +4,51 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ViewTransition } from "react";
-import { formatINR } from "@/lib/format";
-import { GroupBalances } from "@/components/group-balances";
+import { OwnershipPie } from "@/components/ui/ownership-pie";
+import { GroupDetailTabs, type TabMember, type TabExpense, type TabTransfer } from "@/components/ui/group-detail-tabs";
+import { I } from "@/components/ui/icons";
+import { formatInr, formatInrSigned } from "@/lib/format";
+
+type BalanceRow = { group_id: string; creditor_id: string; debtor_id: string; net_amount: number };
+
+// Turn pairwise (creditor, debtor, amount) rows into a minimized list of
+// transfers using the greedy creditor/debtor matching from the spec.
+function simplifyTransfers(balances: BalanceRow[]): TabTransfer[] {
+  const net = new Map<string, number>();
+  for (const b of balances) {
+    net.set(b.creditor_id, (net.get(b.creditor_id) ?? 0) + Number(b.net_amount));
+    net.set(b.debtor_id, (net.get(b.debtor_id) ?? 0) - Number(b.net_amount));
+  }
+  const creditors = Array.from(net.entries()).filter(([, v]) => v > 1).sort((a, b) => b[1] - a[1]);
+  const debtors = Array.from(net.entries()).filter(([, v]) => v < -1).sort((a, b) => a[1] - b[1]);
+  const out: TabTransfer[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < debtors.length && j < creditors.length) {
+    const [dId, dVal] = debtors[i];
+    const [cId, cVal] = creditors[j];
+    const amt = Math.round(Math.min(-dVal, cVal));
+    if (amt > 1) out.push({ from: dId, to: cId, amount: amt });
+    debtors[i][1] = dVal + amt;
+    creditors[j][1] = cVal - amt;
+    if (Math.abs(debtors[i][1]) < 1) i++;
+    if (Math.abs(creditors[j][1]) < 1) j++;
+  }
+  return out;
+}
+
+function humanUpdated(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diff = Date.now() - then;
+  const m = Math.round(diff / 60_000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.round(h / 24);
+  if (d < 14) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
 
 export default async function GroupDetailPage({ params }: { params: Promise<{ groupId: string }> }) {
   const { groupId } = await params;
@@ -15,13 +58,76 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
   if (!tenantId) redirect("/tenants");
 
   const supabase = await createClient();
-  const { data: group } = await supabase.from("groups").select("*").eq("id", groupId).eq("tenant_id", tenantId).single();
+
+  const [groupRes, membersRes, expensesRes, balancesRes, membershipRes] = await Promise.all([
+    supabase.from("groups").select("id, name, updated_at, created_at").eq("id", groupId).eq("tenant_id", tenantId).single(),
+    supabase
+      .from("group_members")
+      .select("user_id, ownership_pct, profiles(id, display_name, email)")
+      .eq("group_id", groupId),
+    supabase
+      .from("expenses")
+      .select("id, description, date, amount, paid_by, created_by, profiles!expenses_paid_by_fkey(display_name)")
+      .eq("group_id", groupId)
+      .order("date", { ascending: false })
+      .order("created_at", { ascending: false }),
+    supabase.from("group_balances").select("*").eq("group_id", groupId),
+    supabase.from("tenant_members").select("role").eq("tenant_id", tenantId).eq("user_id", user.id).single(),
+  ]);
+
+  const group = groupRes.data;
   if (!group) notFound();
 
-  const { data: members } = await supabase.from("group_members").select("user_id, ownership_pct, profiles(display_name, email)").eq("group_id", groupId);
-  const { data: expenses } = await supabase.from("expenses").select("*, profiles!expenses_paid_by_fkey(display_name)").eq("group_id", groupId).order("date", { ascending: false }).order("created_at", { ascending: false });
-  const { data: membership } = await supabase.from("tenant_members").select("role").eq("tenant_id", tenantId).eq("user_id", user.id).single();
-  const isTenantOwner = membership?.role === "owner";
+  const role = membershipRes.data?.role ?? "member";
+  const isTenantOwner = role === "owner";
+  const isTenantAdmin = role === "owner" || role === "admin";
+
+  type MemberRow = { user_id: string; ownership_pct: number; profiles: { id: string; display_name: string; email: string } | null };
+  const rawMembers = (membersRes.data ?? []) as unknown as MemberRow[];
+  type ExpenseRow = {
+    id: string;
+    description: string;
+    date: string;
+    amount: number;
+    paid_by: string;
+    created_by: string;
+    profiles: { display_name: string } | null;
+  };
+  const rawExpenses = (expensesRes.data ?? []) as unknown as ExpenseRow[];
+  const balances = (balancesRes.data ?? []) as BalanceRow[];
+
+  // Per-member in-group net balance for the Members tab.
+  const netById = new Map<string, number>();
+  for (const b of balances) {
+    netById.set(b.creditor_id, (netById.get(b.creditor_id) ?? 0) + Number(b.net_amount));
+    netById.set(b.debtor_id, (netById.get(b.debtor_id) ?? 0) - Number(b.net_amount));
+  }
+
+  const members: TabMember[] = rawMembers
+    .filter((m) => m.profiles)
+    .map((m) => ({
+      id: m.profiles!.id,
+      name: m.profiles!.display_name,
+      email: m.profiles!.email,
+      ownership_pct: Number(m.ownership_pct),
+      net_in_group: Math.round(netById.get(m.profiles!.id) ?? 0),
+    }));
+
+  const expenses: TabExpense[] = rawExpenses.map((e) => ({
+    id: e.id,
+    description: e.description,
+    date: e.date,
+    amount: Number(e.amount),
+    paid_by: e.paid_by,
+    paid_by_name: e.profiles?.display_name ?? "Unknown",
+    can_edit: e.created_by === user.id || isTenantOwner,
+    edit_href: `/groups/${groupId}/expenses/${e.id}/edit`,
+  }));
+
+  const transfers = simplifyTransfers(balances);
+  const total = expenses.reduce((a, e) => a + e.amount, 0);
+  const myBal = netById.get(user.id) ?? 0;
+  const updatedLabel = humanUpdated(group.updated_at);
 
   return (
     <ViewTransition
@@ -29,89 +135,153 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
       exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
       default="none"
     >
-    <main className="mx-auto w-full max-w-[1120px] px-5 sm:px-8 py-8 sm:py-10">
-      {/* Header — stacks on mobile */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <Link href="/groups" transitionTypes={["nav-back"]} className="text-[12px] font-medium text-ink-faint hover:text-ink-muted transition-colors">
-            ← Back to Groups
+      <div style={{ viewTransitionName: "screen" }}>
+        <div
+          className="mx-auto"
+          style={{ maxWidth: 1120, padding: "clamp(18px, 3vw, 28px) clamp(18px, 4vw, 44px) 56px" }}
+        >
+          <Link
+            href="/groups"
+            className="mono"
+            style={{
+              color: "var(--ink-3)",
+              fontSize: 12,
+              textDecoration: "none",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              marginBottom: 16,
+            }}
+          >
+            <I.chevronL size={12} />
+            Back
           </Link>
-          <h1 className="mt-2 font-display text-2xl sm:text-[32px] font-bold text-white">{group.name}</h1>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          {isTenantOwner && (
-            <Link href={`/groups/${groupId}/edit`} transitionTypes={["nav-forward"]} className="btn-secondary btn-press text-[13px]">
-              Edit Group
+
+          {/* Header */}
+          <div
+            style={{
+              display: "flex",
+              gap: 32,
+              marginBottom: 28,
+              flexWrap: "wrap",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                <span
+                  className="eyebrow"
+                  style={{
+                    padding: "3px 8px",
+                    borderRadius: 999,
+                    background: "var(--accent-wash)",
+                    color: "var(--accent)",
+                  }}
+                >
+                  active
+                </span>
+                <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  Updated {updatedLabel}
+                </span>
+              </div>
+              <h1
+                className="serif"
+                style={{
+                  fontSize: "clamp(36px, 6vw, 58px)",
+                  margin: 0,
+                  letterSpacing: "-0.025em",
+                  lineHeight: 1,
+                  color: "var(--ink)",
+                }}
+              >
+                {group.name}
+              </h1>
+              <div style={{ display: "flex", gap: 28, marginTop: 20, flexWrap: "wrap" }}>
+                <Stat label="Total spent" value={formatInr(total)} big />
+                <Stat label="Expenses" value={expenses.length} />
+                <Stat label="Members" value={members.length} />
+                <Stat
+                  label="Your balance"
+                  value={
+                    <span style={{ color: myBal >= 0 ? "var(--pos)" : "var(--neg)" }}>
+                      {formatInrSigned(myBal)}
+                    </span>
+                  }
+                />
+              </div>
+            </div>
+            {members.length > 0 && (
+              <div
+                className="hidden md:flex"
+                style={{
+                  padding: 16,
+                  borderRadius: 16,
+                  border: "1px solid var(--rule)",
+                  background: "var(--card)",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <OwnershipPie
+                  members={members.map((m) => ({ id: m.id, pct: m.ownership_pct }))}
+                  size={160}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Action bar */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+            <Link href={`/groups/${groupId}/expenses/new`} className="btn btn-accent shimmer">
+              <I.plus size={14} /> Log expense
             </Link>
-          )}
-          <Link href={`/groups/${groupId}/expenses/new`} transitionTypes={["nav-forward"]} className="btn-primary btn-press text-[13px]">
-            + Add Expense
-          </Link>
+            {isTenantAdmin && (
+              <Link href={`/groups/${groupId}/members`} className="btn btn-ghost">
+                <I.users size={14} /> Add member
+              </Link>
+            )}
+            {isTenantOwner && (
+              <Link href={`/groups/${groupId}/edit`} className="btn btn-ghost">
+                <I.edit size={14} /> Edit group
+              </Link>
+            )}
+          </div>
+
+          {/* Tabs */}
+          <GroupDetailTabs
+            expenses={expenses}
+            members={members}
+            transfers={transfers}
+            currentUserId={user.id}
+            groupId={groupId}
+          />
         </div>
       </div>
-
-      {/* Content — stacks on mobile, side-by-side on desktop */}
-      <div className="mt-8 grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-2 space-y-6">
-          <section>
-            <h2 className="section-label mb-3">Members</h2>
-            <div className="card divide-y divide-white/[0.04] overflow-hidden">
-              {(members ?? []).map((m) => (
-                <div key={m.user_id} className="flex items-center justify-between px-5 py-4">
-                  <div className="min-w-0 flex-1 mr-3">
-                    <p className="text-[14px] font-medium text-ink/90 truncate">
-                      {(m.profiles as unknown as { display_name: string })?.display_name}
-                    </p>
-                    <p className="text-[12px] text-ink-faint truncate">
-                      {(m.profiles as unknown as { email: string })?.email}
-                    </p>
-                  </div>
-                  <span className="font-display text-[14px] font-bold text-primary shrink-0">{m.ownership_pct}%</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <h2 className="section-label mb-3">Balances</h2>
-            <GroupBalances groupId={groupId} />
-          </section>
-        </div>
-
-        <section className="lg:col-span-3">
-          <h2 className="section-label mb-3">Expenses</h2>
-          {!expenses || expenses.length === 0 ? (
-            <div className="card p-10 text-center">
-              <p className="text-[13px] text-ink-faint">No expenses yet. Add your first one above.</p>
-            </div>
-          ) : (
-            <div className="card divide-y divide-white/[0.04] overflow-hidden">
-              {expenses.map((e) => {
-                const canEdit = e.created_by === user.id || isTenantOwner;
-                return (
-                  <div key={e.id} className="flex items-center justify-between px-5 py-4 gap-4">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[14px] font-medium text-ink/90 truncate">{e.description}</p>
-                      <p className="mt-1 text-[12px] text-ink-faint truncate">
-                        {(e.profiles as unknown as { display_name: string })?.display_name ?? "Unknown"} · {e.date}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4 shrink-0">
-                      <p className="font-display text-[15px] font-bold text-primary">{formatINR(e.amount)}</p>
-                      {canEdit && (
-                        <Link href={`/groups/${groupId}/expenses/${e.id}/edit`} transitionTypes={["nav-forward"]} className="text-[12px] text-ink-faint hover:text-primary transition-colors">
-                          Edit
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
     </ViewTransition>
+  );
+}
+
+function Stat({ label, value, big = false }: { label: string; value: React.ReactNode; big?: boolean }) {
+  return (
+    <div>
+      <div className="eyebrow" style={{ marginBottom: 4 }}>
+        {label}
+      </div>
+      <div
+        className={big ? "serif" : "mono tnum"}
+        style={{
+          fontSize: big ? 28 : 18,
+          fontWeight: big ? 400 : 500,
+          color: "var(--ink)",
+          letterSpacing: big ? "-0.01em" : 0,
+        }}
+      >
+        {value}
+      </div>
+    </div>
   );
 }

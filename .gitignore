@@ -40,3 +40,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+design_handoff_farm_share_ledger
+
+# editors / local scratch
+.idea/
+.playwright-mcp/
+.remember/
+.superpowers/
+
+# design screenshots
+*.png
