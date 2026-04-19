@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getActiveTenantId } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { isCurrentUserPlatformAdmin } from "@/lib/platform";
+import { getPlatformApex } from "@/lib/platform-hosts";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ViewTransition } from "react";
@@ -40,6 +41,14 @@ export default async function ProfilePage() {
         : activeMembership
           ? "Member"
           : null;
+
+  // The platform console only serves on the platform apex, so a relative
+  // /platform link on a tenant host (e.g. expense.vibenaturals.in) would just
+  // redirect back to /. Route admins to the apex directly.
+  const platformApex = getPlatformApex();
+  const platformConsoleUrl = platformApex.startsWith("localhost") || platformApex.startsWith("127.")
+    ? `http://${platformApex}/platform`
+    : `https://${platformApex}/platform`;
 
   return (
     <ViewTransition
@@ -194,8 +203,8 @@ export default async function ProfilePage() {
               <I.chevron size={14} stroke="var(--ink-4)" />
             </Link>
             {isPlatform && (
-              <Link
-                href="/platform"
+              <a
+                href={platformConsoleUrl}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -206,9 +215,14 @@ export default async function ProfilePage() {
                 }}
               >
                 <I.leaf size={16} stroke="var(--accent)" />
-                <span style={{ flex: 1, fontSize: 14 }}>Platform console</span>
+                <span style={{ flex: 1, fontSize: 14 }}>
+                  Platform console
+                  <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginLeft: 6 }}>
+                    {platformApex}
+                  </span>
+                </span>
                 <I.chevron size={14} stroke="var(--ink-4)" />
-              </Link>
+              </a>
             )}
           </div>
 

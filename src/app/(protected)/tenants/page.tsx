@@ -4,7 +4,6 @@ import { getActiveTenantId } from "@/lib/tenant";
 import { isCurrentUserPlatformAdmin } from "@/lib/platform";
 import { getPlatformApex } from "@/lib/platform-hosts";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { ViewTransition } from "react";
 import { switchTenant } from "@/actions/tenant";
 import { CreateTenantForm } from "./create-tenant-form";
@@ -79,9 +78,9 @@ export default async function TenantsPage() {
           </span>
           <span style={{ fontSize: 13 }}>
             You&rsquo;re a platform admin. Manage every tenant from{" "}
-            <Link href={platformConsoleUrl} style={{ color: "var(--accent)" }}>
+            <a href={platformConsoleUrl} style={{ color: "var(--accent)" }}>
               {platformApex}/platform
-            </Link>
+            </a>
             .
           </span>
         </div>
