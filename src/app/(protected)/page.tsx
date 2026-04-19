@@ -53,7 +53,7 @@ export default async function DashboardPage() {
 
   const supabase = await createClient();
 
-  const [summaryRes, profileRes, tenantRes, groupsRes] = await Promise.all([
+  const [summaryRes, profileRes, tenantRes, groupsRes, pendingInvitesRes] = await Promise.all([
     supabase.rpc("tenant_summary", { p_tenant_id: tenantId, p_user_id: user.id }),
     supabase.from("profiles").select("display_name").eq("id", user.id).single(),
     supabase.from("tenants").select("name").eq("id", tenantId).single(),
@@ -62,6 +62,14 @@ export default async function DashboardPage() {
       .select("id, name, created_at, updated_at, group_members(user_id, profiles(id, display_name))")
       .eq("tenant_id", tenantId)
       .order("updated_at", { ascending: false }),
+    // RLS policy on tenant_invites lets the invitee see their own pending
+    // invites even before they're a member. Filter tenants to the ones they
+    // aren't already in below.
+    supabase
+      .from("tenant_invites")
+      .select("id, token, tenant_id, role, expires_at, tenants(name)")
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString()),
   ]);
 
   const totals = summaryRes.data?.[0] ?? { total_you_owe: 0, total_owed_to_you: 0 };
@@ -132,6 +140,22 @@ export default async function DashboardPage() {
   const showDesktopLogExpense = groups.length > 0;
   const firstGroupId = groups[0]?.id;
 
+  // Surface tenant invites the user hasn't accepted yet. Skip any for the
+  // active tenant (they're already in it) — the pending-invite unique index
+  // and the acceptance handler already ensure the membership side is clean,
+  // but filtering here keeps the banner from being noisy.
+  type PendingInvite = {
+    id: string;
+    token: string;
+    tenant_id: string;
+    role: "admin" | "member";
+    expires_at: string;
+    tenants: { name: string } | null;
+  };
+  const pendingInvites = ((pendingInvitesRes.data ?? []) as unknown as PendingInvite[]).filter(
+    (i) => i.tenant_id !== tenantId,
+  );
+
   return (
     <ViewTransition
       enter={{ "nav-forward": "slide-from-right", "nav-back": "slide-from-left", default: "none" }}
@@ -143,6 +167,72 @@ export default async function DashboardPage() {
           className="mx-auto"
           style={{ maxWidth: 1120, padding: "clamp(18px, 3vw, 32px) clamp(18px, 4vw, 44px) 56px" }}
         >
+          {/* Pending-invite banner: shown when someone invited this email to
+              another tenant and they haven't accepted yet. */}
+          {pendingInvites.length > 0 && (
+            <div
+              role="status"
+              style={{
+                marginBottom: 20,
+                padding: "14px 18px",
+                borderRadius: 14,
+                background: "var(--accent-wash)",
+                border: "1px solid color-mix(in oklch, var(--accent) 25%, transparent)",
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 12,
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  background: "var(--accent)",
+                  color: "var(--accent-ink)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <I.bell size={13} />
+              </span>
+              <div style={{ flex: "1 1 240px", fontSize: 13, color: "var(--ink-2)" }}>
+                {pendingInvites.length === 1
+                  ? `You've been invited to join ${pendingInvites[0].tenants?.name ?? "another tenant"}.`
+                  : `You have ${pendingInvites.length} pending tenant invitations.`}
+              </div>
+              {pendingInvites.slice(0, 1).map((i) => (
+                <Link
+                  key={i.id}
+                  href={`/auth/accept-invite?token=${encodeURIComponent(i.token)}`}
+                  className="btn btn-accent"
+                  style={{ height: 34, fontSize: 12 }}
+                >
+                  Accept {i.tenants?.name ?? "invite"}
+                </Link>
+              ))}
+              {pendingInvites.length > 1 && (
+                <Link
+                  href="/profile"
+                  className="mono"
+                  style={{
+                    fontSize: 11,
+                    color: "var(--ink-3)",
+                    textDecoration: "none",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  see all →
+                </Link>
+              )}
+            </div>
+          )}
+
           {/* Top bar */}
           <div
             style={{

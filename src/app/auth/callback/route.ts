@@ -20,25 +20,36 @@ export async function GET(request: Request) {
   }
 
   const supabase = await createClient();
-  const nextPath = type === "invite" ? "/auth/set-password" : "/";
 
-  // Token-hash flow (recommended for admin invites — no PKCE verifier needed)
+  // After verifying the OTP / exchanging the code, decide where to send them.
+  // A new-user invite carries an `invite_token` in user_metadata — hop to
+  // /auth/accept-invite to materialize the tenant membership before they
+  // land on the dashboard. Standard invites (no token) go through the
+  // set-password flow; everything else lands on /.
+  async function nextDestination(): Promise<string> {
+    if (type === "invite") {
+      const { data } = await supabase.auth.getUser();
+      const token = (data.user?.user_metadata as { invite_token?: string } | null)?.invite_token;
+      if (token) return `/auth/set-password?next=/auth/accept-invite?token=${encodeURIComponent(token)}`;
+      return "/auth/set-password";
+    }
+    return "/";
+  }
+
   if (tokenHash) {
     const { error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
       type: (type as "invite" | "email" | "recovery" | "magiclink") || "invite",
     });
-    if (!error) return NextResponse.redirect(`${origin}${nextPath}`);
+    if (!error) return NextResponse.redirect(`${origin}${await nextDestination()}`);
     return NextResponse.redirect(
       `${origin}/login?error=otp_failed&message=${encodeURIComponent(error.message)}`
     );
   }
 
-  // PKCE code flow — only works if the browser initiated auth (OAuth / magic-link click
-  // from the same browser). Admin invites won't have a verifier cookie here.
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${nextPath}`);
+    if (!error) return NextResponse.redirect(`${origin}${await nextDestination()}`);
     return NextResponse.redirect(
       `${origin}/login?error=code_exchange_failed&message=${encodeURIComponent(error.message)}`
     );

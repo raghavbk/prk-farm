@@ -39,6 +39,7 @@ export async function setPassword(
 ): Promise<AuthActionResult> {
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
+  const next = (formData.get("next") as string | null)?.trim() ?? "";
 
   if (!password || password.length < 6) {
     return { error: "Password must be at least 6 characters" };
@@ -56,8 +57,13 @@ export async function setPassword(
   }
 
   revalidatePath("/");
-  // /auth/resume decides where to send the user based on their memberships
-  // and platform-admin status.
+  // If the invite flow passed a `next` URL (accept-invite with a token),
+  // honour it so the invitee lands on the acceptance handler. Only allow
+  // same-origin paths so this can't be turned into an open redirect.
+  if (next && next.startsWith("/")) {
+    redirect(next);
+  }
+  // Default: /auth/resume picks the right destination from memberships.
   redirect("/auth/resume");
 }
 
