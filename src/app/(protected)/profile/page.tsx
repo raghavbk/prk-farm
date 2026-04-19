@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveTenantId } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
+import { isCurrentUserPlatformAdmin } from "@/lib/platform";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ViewTransition } from "react";
@@ -14,12 +15,13 @@ export default async function ProfilePage() {
   const supabase = await createClient();
   const activeTenantId = await getActiveTenantId();
 
-  const [profileRes, membershipsRes] = await Promise.all([
+  const [profileRes, membershipsRes, isPlatform] = await Promise.all([
     supabase.from("profiles").select("display_name, email").eq("id", user.id).single(),
     supabase
       .from("tenant_members")
       .select("role, tenant_id, tenants(id, name)")
       .eq("user_id", user.id),
+    isCurrentUserPlatformAdmin(),
   ]);
 
   const profile = profileRes.data;
@@ -184,12 +186,30 @@ export default async function ProfilePage() {
                 padding: "14px 16px",
                 textDecoration: "none",
                 color: "inherit",
+                borderBottom: isPlatform ? "1px solid var(--rule-2)" : "none",
               }}
             >
               <I.users size={16} stroke="var(--ink-2)" />
               <span style={{ flex: 1, fontSize: 14 }}>Switch tenant</span>
               <I.chevron size={14} stroke="var(--ink-4)" />
             </Link>
+            {isPlatform && (
+              <Link
+                href="/platform"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "14px 16px",
+                  textDecoration: "none",
+                  color: "inherit",
+                }}
+              >
+                <I.leaf size={16} stroke="var(--accent)" />
+                <span style={{ flex: 1, fontSize: 14 }}>Platform console</span>
+                <I.chevron size={14} stroke="var(--ink-4)" />
+              </Link>
+            )}
           </div>
 
           {/* Sign out */}

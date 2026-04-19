@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { setActiveTenantId } from "@/lib/tenant";
+import { logAction } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -43,6 +44,14 @@ export async function createTenant(
   if (memberError) {
     return { error: memberError.message };
   }
+
+  await logAction({
+    tenantId: tenant.id,
+    action: "tenant.created",
+    resourceType: "tenant",
+    resourceId: tenant.id,
+    metadata: { name: name.trim() },
+  });
 
   // Set as active tenant and redirect to dashboard
   await setActiveTenantId(tenant.id);

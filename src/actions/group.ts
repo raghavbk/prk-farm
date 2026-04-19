@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveTenantId } from "@/lib/tenant";
+import { logAction } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -73,6 +74,14 @@ export async function createGroup(
 
   if (membersError) return { error: membersError.message };
 
+  await logAction({
+    tenantId,
+    action: "group.created",
+    resourceType: "group",
+    resourceId: group.id,
+    metadata: { name: name.trim(), member_count: members.length },
+  });
+
   revalidatePath("/groups");
   redirect(`/groups/${group.id}`);
 }
@@ -96,6 +105,14 @@ export async function updateGroup(
     .eq("id", groupId);
 
   if (error) return { error: error.message };
+
+  await logAction({
+    tenantId: await getActiveTenantId(),
+    action: "group.renamed",
+    resourceType: "group",
+    resourceId: groupId,
+    metadata: { name: name.trim() },
+  });
 
   revalidatePath(`/groups/${groupId}`);
   redirect(`/groups/${groupId}`);
@@ -144,6 +161,14 @@ export async function setOwnership(
     .insert(rows);
 
   if (insertError) return { error: insertError.message };
+
+  await logAction({
+    tenantId: await getActiveTenantId(),
+    action: "group.ownership_updated",
+    resourceType: "group",
+    resourceId: groupId,
+    metadata: { allocations },
+  });
 
   revalidatePath(`/groups/${groupId}`);
   redirect(`/groups/${groupId}`);

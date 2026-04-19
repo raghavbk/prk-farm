@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveTenantId } from "@/lib/tenant";
+import { logAction } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 
 export type AdminActionResult = { error?: string; success?: string } | void;
@@ -84,6 +85,13 @@ export async function inviteMember(
         if (insertError) return { error: insertError.message };
       }
 
+      await logAction({
+        tenantId,
+        action: "invite.resent",
+        resourceType: "user",
+        resourceId: profile.id,
+        metadata: { email: normalizedEmail, role: normalizedRole },
+      });
       revalidatePath("/admin");
       return { success: `Invite resent to ${normalizedEmail}.` };
     }
@@ -97,6 +105,13 @@ export async function inviteMember(
       .insert({ tenant_id: tenantId, user_id: profile.id, role: normalizedRole });
     if (insertError) return { error: insertError.message };
 
+    await logAction({
+      tenantId,
+      action: "member.added",
+      resourceType: "user",
+      resourceId: profile.id,
+      metadata: { email: normalizedEmail, role: normalizedRole },
+    });
     revalidatePath("/admin");
     return { success: `${profile.display_name} has been added to the farm` };
   }
@@ -133,6 +148,14 @@ export async function inviteMember(
 
   if (insertError) return { error: insertError.message };
 
+  await logAction({
+    tenantId,
+    action: "invite.sent",
+    resourceType: "user",
+    resourceId: userId,
+    metadata: { email: normalizedEmail, role: normalizedRole },
+  });
+
   revalidatePath("/admin");
   return { success: `Invite sent to ${normalizedEmail}. They'll receive an email to set up their account.` };
 }
@@ -158,6 +181,13 @@ export async function removeMember(memberId: string) {
 
   if (error) return { error: error.message };
 
+  await logAction({
+    tenantId,
+    action: "member.removed",
+    resourceType: "user",
+    resourceId: memberId,
+  });
+
   revalidatePath("/admin");
 }
 
@@ -177,6 +207,14 @@ export async function updateMemberRole(memberId: string, newRole: string) {
     .eq("user_id", memberId);
 
   if (error) return { error: error.message };
+
+  await logAction({
+    tenantId,
+    action: "member.role_changed",
+    resourceType: "user",
+    resourceId: memberId,
+    metadata: { new_role: newRole },
+  });
 
   revalidatePath("/admin");
 }

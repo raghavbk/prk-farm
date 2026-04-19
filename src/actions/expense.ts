@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
+import { logAction } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -84,6 +85,21 @@ export async function addExpense(
 
   if (splitsError) return { error: splitsError.message };
 
+  // Tenant id is reachable via the group — keep the read cheap since we just
+  // wrote to it.
+  const { data: groupRow } = await supabase
+    .from("groups")
+    .select("tenant_id")
+    .eq("id", groupId)
+    .single();
+  await logAction({
+    tenantId: groupRow?.tenant_id ?? null,
+    action: "expense.created",
+    resourceType: "expense",
+    resourceId: expense.id,
+    metadata: { group_id: groupId, amount, split_method: splitMethod },
+  });
+
   revalidatePath(`/groups/${groupId}`);
   redirect(`/groups/${groupId}`);
 }
@@ -165,6 +181,14 @@ export async function editExpense(
     }
   }
 
+  await logAction({
+    tenantId: tenantId ?? null,
+    action: "expense.updated",
+    resourceType: "expense",
+    resourceId: expenseId,
+    metadata: { amount, previous_amount: existing.amount },
+  });
+
   revalidatePath(`/groups/${existing.group_id}`);
   redirect(`/groups/${existing.group_id}`);
 }
@@ -211,6 +235,14 @@ export async function deleteExpense(expenseId: string, groupId: string) {
     .eq("id", expenseId);
 
   if (error) return { error: error.message };
+
+  await logAction({
+    tenantId: tenantId ?? null,
+    action: "expense.deleted",
+    resourceType: "expense",
+    resourceId: expenseId,
+    metadata: { group_id: groupId },
+  });
 
   revalidatePath(`/groups/${groupId}`);
   redirect(`/groups/${groupId}`);
