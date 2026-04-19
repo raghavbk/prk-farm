@@ -11,7 +11,9 @@ import { revalidatePath } from "next/cache";
 
 export type AdminActionResult = { error?: string; success?: string } | void;
 
-function normaliseRole(raw: string | null | undefined): "admin" | "member" {
+type InviteRole = "admin" | "member";
+
+function normaliseRole(raw: string | null | undefined): InviteRole {
   return raw === "admin" ? "admin" : "member";
 }
 
@@ -19,23 +21,139 @@ function makeInviteToken(): string {
   return randomBytes(32).toString("base64url");
 }
 
+// Shared: upsert a pending tenant_invites row and send the activation email.
+// Used by both the initial invite and the resend flow so the logic can't
+// drift. The caller is responsible for auth + admin-role checks.
+//
+// Re-probes `profiles` each call: between first invite and a resend, the
+// invitee may have finished sign-up (profile row exists), which flips the
+// email path from inviteUserByEmail → signInWithOtp.
+async function issuePendingInvite(params: {
+  tenantId: string;
+  email: string;
+  role: InviteRole;
+  inviterId: string;
+  displayName?: string;
+  existingInviteId?: string;
+}): Promise<{ inviteId: string; acceptUrl: string; emailSent: boolean; emailError: string | null }> {
+  const { tenantId, email, role, inviterId, displayName, existingInviteId } = params;
+  const admin = createAdminClient();
+
+  const token = makeInviteToken();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  // UPSERT against the partial unique index (tenant_id, lower(email)) WHERE
+  // status='pending'. Can't use onConflict because Postgres won't infer a
+  // partial expression index — so probe+branch.
+  let inviteId: string;
+  if (existingInviteId) {
+    const { data, error } = await admin
+      .from("tenant_invites")
+      .update({ token, role, invited_by: inviterId, expires_at: expiresAt, status: "pending" })
+      .eq("id", existingInviteId)
+      .select("id")
+      .single();
+    if (error || !data) throw new Error(error?.message ?? "Could not refresh invite.");
+    inviteId = data.id;
+  } else {
+    const { data: existing } = await admin
+      .from("tenant_invites")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("email", email)
+      .eq("status", "pending")
+      .maybeSingle();
+    if (existing) {
+      const { data, error } = await admin
+        .from("tenant_invites")
+        .update({ token, role, invited_by: inviterId, expires_at: expiresAt })
+        .eq("id", existing.id)
+        .select("id")
+        .single();
+      if (error || !data) throw new Error(error?.message ?? "Could not refresh invite.");
+      inviteId = data.id;
+    } else {
+      const { data, error } = await admin
+        .from("tenant_invites")
+        .insert({
+          tenant_id: tenantId,
+          email,
+          role,
+          token,
+          invited_by: inviterId,
+          status: "pending",
+          expires_at: expiresAt,
+        })
+        .select("id")
+        .single();
+      if (error || !data) throw new Error(error?.message ?? "Could not create invite.");
+      inviteId = data.id;
+    }
+  }
+
+  const { data: primary } = await admin
+    .from("tenant_domains")
+    .select("domain")
+    .eq("tenant_id", tenantId)
+    .eq("is_primary", true)
+    .maybeSingle();
+  const host = primary?.domain ?? (process.env.NEXT_PUBLIC_SITE_URL ?? "chukta.in").replace(/^https?:\/\//, "");
+  const scheme = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https";
+  const callbackUrl = `${scheme}://${host}/auth/callback`;
+  const callbackWithInviteUrl = `${callbackUrl}?invite_token=${encodeURIComponent(token)}`;
+  const acceptUrl = `${scheme}://${host}/auth/accept-invite?token=${token}`;
+
+  // Route based on current profile state, not a cached earlier read.
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+
+  let emailSent = false;
+  let emailError: string | null = null;
+
+  if (!profile) {
+    // Brand-new user — inviteUserByEmail sends the sign-up + verify email.
+    // The invite_token travels via user_metadata (only writable at account
+    // creation) so the callback can pick it up for existing users too.
+    const name = displayName?.trim() || email.split("@")[0];
+    const { error } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: {
+        full_name: name,
+        display_name: name,
+        email,
+        invite_token: token,
+        invited_to_tenant: tenantId,
+      },
+      redirectTo: callbackUrl,
+    });
+    if (error) emailError = error.message;
+    else emailSent = true;
+  } else {
+    // Existing user — inviteUserByEmail would 422 on a confirmed account.
+    // Magic link through the same SMTP carries the token in the callback URL.
+    const anon = createAnonClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { error } = await anon.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false, emailRedirectTo: callbackWithInviteUrl },
+    });
+    if (error) emailError = error.message;
+    else emailSent = true;
+  }
+
+  return { inviteId, acceptUrl, emailSent, emailError };
+}
+
 // Tenant-scoped invite flow.
 //
-// Creates a `tenant_invites` row with a random token. The invitee must
-// explicitly accept the invite at /auth/accept-invite?token=<token> before
-// a `tenant_members` row exists for them — membership is never conferred
-// silently, not even when the inviter knows an existing user's email.
-//
-// Email delivery:
-//   - Brand-new user  → Supabase's inviteUserByEmail sends a sign-up link
-//     that (via our /auth/callback → /auth/accept-invite flow) lands them
-//     on the acceptance page with the token.
-//   - Existing user   → no email goes out through the default SMTP (it
-//     would confuse Supabase's inviteUserByEmail, which refuses to
-//     re-invite a confirmed user). The invite sits pending; the dashboard
-//     surfaces it on their next login via the "You have pending invitations"
-//     banner. If/when Resend SMTP is wired up, this branch gets a real
-//     email instead.
+// Creates (or refreshes) a pending tenant_invites row. Membership is only
+// conferred when the invitee follows the link and /auth/callback calls
+// acceptInviteForUser() — never silently.
 export async function inviteMember(
   _prev: AdminActionResult,
   formData: FormData,
@@ -50,19 +168,18 @@ export async function inviteMember(
     return { error: "Only a tenant admin can invite members." };
   }
 
-  const email = formData.get("email") as string;
-  const displayName = formData.get("displayName") as string;
+  const rawEmail = formData.get("email") as string | null;
+  const displayName = (formData.get("displayName") as string | null) ?? undefined;
   const role = normaliseRole(formData.get("role") as string | null);
-  if (!email?.trim()) return { error: "Email is required" };
+  if (!rawEmail?.trim()) return { error: "Email is required" };
+  const email = rawEmail.trim().toLowerCase();
 
   const admin = createAdminClient();
-  const normalizedEmail = email.trim().toLowerCase();
 
-  // If they're already a member of this tenant, short-circuit.
   const { data: existingProfile } = await admin
     .from("profiles")
-    .select("id, display_name")
-    .eq("email", normalizedEmail)
+    .select("id")
+    .eq("email", email)
     .maybeSingle();
   if (existingProfile) {
     const { data: existingMember } = await admin
@@ -74,157 +191,116 @@ export async function inviteMember(
     if (existingMember) return { error: "This user is already a member of this tenant." };
   }
 
-  // Reuse or create the pending invite row. We can't use upsert with
-  // onConflict here because the uniqueness guarantee is a partial
-  // expression index ( (tenant_id, lower(email)) WHERE status='pending' ),
-  // which Postgres' ON CONFLICT can't infer without an exact column list.
-  // Instead: probe first, then UPDATE existing pending row or INSERT.
-  const token = makeInviteToken();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-  const { data: existingInvite } = await admin
-    .from("tenant_invites")
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .eq("email", normalizedEmail)
-    .eq("status", "pending")
-    .maybeSingle();
-
-  let invite: { id: string; token: string };
-  if (existingInvite) {
-    const { data, error } = await admin
-      .from("tenant_invites")
-      .update({
-        token,
-        role,
-        invited_by: user.id,
-        expires_at: expiresAt,
-      })
-      .eq("id", existingInvite.id)
-      .select("id, token")
-      .single();
-    if (error || !data) return { error: error?.message ?? "Could not refresh invite." };
-    invite = data;
-  } else {
-    const { data, error } = await admin
-      .from("tenant_invites")
-      .insert({
-        tenant_id: tenantId,
-        email: normalizedEmail,
-        role,
-        token,
-        invited_by: user.id,
-        status: "pending",
-        expires_at: expiresAt,
-      })
-      .select("id, token")
-      .single();
-    if (error || !data) return { error: error?.message ?? "Could not create invite." };
-    invite = data;
+  let result: Awaited<ReturnType<typeof issuePendingInvite>>;
+  try {
+    result = await issuePendingInvite({ tenantId, email, role, inviterId: user.id, displayName });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Could not create invite." };
   }
-
-  // Primary domain → invitee lands on the tenant host after accept.
-  const { data: primary } = await admin
-    .from("tenant_domains")
-    .select("domain")
-    .eq("tenant_id", tenantId)
-    .eq("is_primary", true)
-    .maybeSingle();
-  const host = primary?.domain ?? (process.env.NEXT_PUBLIC_SITE_URL ?? "chukta.in").replace(/^https?:\/\//, "");
-  const scheme = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https";
-  // Supabase's invite email routes through its /auth/v1/verify endpoint and
-  // then bounces to `redirectTo`. That bounce has to land on OUR
-  // /auth/callback so the token_hash can be traded for a session on the
-  // tenant host — only then can /auth/accept-invite verify the caller.
-  // Going straight to /auth/accept-invite would arrive without a session
-  // cookie and get middleware-redirected to /login.
-  const callbackUrl = `${scheme}://${host}/auth/callback`;
-  // For existing users we can't ferry the invite_token through Supabase
-  // user_metadata (it's set during account creation, not on each sign-in),
-  // so we tack it onto the callback URL as a query param and have
-  // /auth/callback forward on it.
-  const callbackWithInviteUrl = `${callbackUrl}?invite_token=${encodeURIComponent(invite.token)}`;
-  const acceptUrl = `${scheme}://${host}/auth/accept-invite?token=${invite.token}`;
-
-  let emailSent = false;
-  let emailError: string | null = null;
-
-  if (!existingProfile) {
-    // Brand-new user — Supabase sends the sign-up email via inviteUserByEmail.
-    // The invite token travels via user_metadata so /auth/callback can
-    // forward to /auth/set-password?next=/auth/accept-invite?token=...
-    // after the OTP verification establishes the session.
-    const name = displayName?.trim() || normalizedEmail.split("@")[0];
-    const { error: mailErr } = await admin.auth.admin.inviteUserByEmail(normalizedEmail, {
-      data: {
-        full_name: name,
-        display_name: name,
-        email: normalizedEmail,
-        invite_token: invite.token,
-        invited_to_tenant: tenantId,
-      },
-      redirectTo: callbackUrl,
-    });
-    if (mailErr) {
-      emailError = mailErr.message;
-    } else {
-      emailSent = true;
-    }
-  } else {
-    // Existing user — inviteUserByEmail refuses to re-invite. Send a
-    // magic-link instead (same SMTP + rate limits, different template).
-    // The callback URL carries the invite token so the OTP hop forwards
-    // directly to /auth/accept-invite once the session is re-established.
-    const anon = createAnonClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } },
-    );
-    const { error: otpErr } = await anon.auth.signInWithOtp({
-      email: normalizedEmail,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: callbackWithInviteUrl,
-      },
-    });
-    if (otpErr) {
-      emailError = otpErr.message;
-    } else {
-      emailSent = true;
-    }
-  }
-
-  // Non-fatal: if the email call errored (rate limit, bad SMTP config, etc),
-  // we keep the tenant_invites row so the operator can share the accept URL
-  // manually and/or the dashboard banner catches the user on next sign-in.
 
   await logAction({
     tenantId,
-    action: emailSent ? "invite.sent" : "invite.queued",
+    action: result.emailSent ? "invite.sent" : "invite.queued",
     resourceType: "tenant_invite",
-    resourceId: invite.id,
+    resourceId: result.inviteId,
     metadata: {
-      email: normalizedEmail,
+      email,
       role,
-      accept_url: acceptUrl,
-      email_sent: emailSent,
-      email_error: emailError,
+      accept_url: result.acceptUrl,
+      email_sent: result.emailSent,
+      email_error: result.emailError,
     },
   });
 
   revalidatePath("/admin");
-  if (emailSent) {
-    return {
-      success: `Invite sent to ${normalizedEmail}. They'll receive an email with a link to join.`,
-    };
+  if (result.emailSent) {
+    return { success: `Invite sent to ${email}. They'll receive an email with a link to join.` };
   }
-  // Email didn't go — most likely rate-limited by Supabase's default SMTP
-  // (4/hr free, 30/hr Pro). The invite row is still pending so sign-in
-  // banners will surface it, and the operator can copy the link below.
   return {
-    success: `Invite saved for ${normalizedEmail}, but the email didn't send${
-      emailError ? ` (${emailError})` : ""
-    }. Share this link with them directly: ${acceptUrl}`,
+    success: `Invite saved for ${email}, but the email didn't send${
+      result.emailError ? ` (${result.emailError})` : ""
+    }. Share this link with them directly: ${result.acceptUrl}`,
+  };
+}
+
+// Regenerate token, reset expiry, and re-send the email for an existing
+// invite. Works on pending OR expired rows; refuses accepted/revoked.
+export async function resendInvite(inviteId: string): Promise<AdminActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const tenantId = await getActiveTenantId();
+  if (!tenantId) return { error: "No active tenant" };
+
+  if (!(await canManageTenant(tenantId))) {
+    return { error: "Only a tenant admin can resend invites." };
+  }
+
+  const admin = createAdminClient();
+  const { data: invite } = await admin
+    .from("tenant_invites")
+    .select("id, email, role, status, tenant_id")
+    .eq("id", inviteId)
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  if (!invite) return { error: "Invite not found." };
+  if (invite.status === "accepted") return { error: "This invite has already been accepted." };
+  if (invite.status === "revoked") return { error: "This invite was revoked. Send a new one instead." };
+
+  // Collapse to one pending row per (tenant, email). If an explicit-expired
+  // row is clicked but a separate pending row already exists for the same
+  // email (possible when the admin re-used the dialog before resending),
+  // refresh the pending one and retire the stale row. Otherwise the flip
+  // to 'pending' would collide with the partial unique index.
+  const { data: sibling } = await admin
+    .from("tenant_invites")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("email", invite.email)
+    .eq("status", "pending")
+    .neq("id", invite.id)
+    .maybeSingle();
+
+  if (sibling) {
+    await admin.from("tenant_invites").update({ status: "revoked" }).eq("id", invite.id);
+  }
+  const targetId = sibling?.id ?? invite.id;
+
+  let result: Awaited<ReturnType<typeof issuePendingInvite>>;
+  try {
+    result = await issuePendingInvite({
+      tenantId,
+      email: invite.email,
+      role: normaliseRole(invite.role),
+      inviterId: user.id,
+      existingInviteId: targetId,
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Could not resend invite." };
+  }
+
+  await logAction({
+    tenantId,
+    action: result.emailSent ? "invite.resent" : "invite.resend_queued",
+    resourceType: "tenant_invite",
+    resourceId: result.inviteId,
+    metadata: {
+      email: invite.email,
+      role: invite.role,
+      accept_url: result.acceptUrl,
+      email_sent: result.emailSent,
+      email_error: result.emailError,
+    },
+  });
+
+  revalidatePath("/admin");
+  if (result.emailSent) {
+    return { success: `Invite re-sent to ${invite.email}.` };
+  }
+  return {
+    success: `Invite refreshed, but email didn't send${
+      result.emailError ? ` (${result.emailError})` : ""
+    }. Share this link: ${result.acceptUrl}`,
   };
 }
 
@@ -258,13 +334,9 @@ export async function removeMember(memberId: string) {
   revalidatePath("/admin");
 }
 
-// Mark a pending invite as revoked. Soft-delete (status='revoked') rather
-// than a row delete — the audit log keeps referencing the invite id, and
-// /auth/accept-invite already rejects anything !== 'pending' so the token
-// becomes inert without needing to null it out (which would also break the
-// table-wide UNIQUE(token) constraint if two invites were revoked).
-// Flipping status off 'pending' frees the partial unique index so the same
-// email can be re-invited cleanly.
+// Mark an invite as revoked. Soft-delete via status flip so the audit log
+// keeps its FK, and the partial unique index frees up the (tenant, email)
+// slot for a fresh invite.
 export async function revokeInvite(inviteId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
@@ -282,7 +354,7 @@ export async function revokeInvite(inviteId: string) {
     .update({ status: "revoked" })
     .eq("id", inviteId)
     .eq("tenant_id", tenantId)
-    .eq("status", "pending")
+    .in("status", ["pending", "expired"])
     .select("id, email")
     .maybeSingle();
   if (error) return { error: error.message };

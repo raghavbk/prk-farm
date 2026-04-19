@@ -1,16 +1,21 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { revokeInvite } from "@/actions/admin";
+import { resendInvite, revokeInvite } from "@/actions/admin";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { I } from "@/components/ui/icons";
 
 export type PendingInvite = {
-  userId: string;
+  inviteId: string;
   email: string;
   displayName: string;
   role: "admin" | "member";
   invitedAt: string;
+  expiresAt: string;
+  // True iff the row was explicitly flipped to 'expired' (someone tried to
+  // accept after expiry). Silently-past deadlines are detected client-side
+  // against the current wall clock.
+  statusExpired: boolean;
 };
 
 function humanAgo(iso: string): string {
@@ -22,6 +27,10 @@ function humanAgo(iso: string): string {
   const d = Math.round(h / 24);
   if (d < 14) return `${d}d ago`;
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
+function isExpired(invite: PendingInvite): boolean {
+  return invite.statusExpired || new Date(invite.expiresAt).getTime() < Date.now();
 }
 
 export function InvitesTab({
@@ -79,8 +88,6 @@ export function InvitesTab({
         background: "var(--card)",
         border: "1px solid var(--rule)",
         borderRadius: 14,
-        // No overflow:hidden — the row ⋯ menu popover needs to escape
-        // the card's rounded corners (same reason as members-tab).
       }}
     >
       <style>{`
@@ -113,12 +120,12 @@ export function InvitesTab({
       >
         <div className="eyebrow">Email</div>
         <div className="eyebrow it-role">Role</div>
-        <div className="eyebrow it-sent">Invited</div>
+        <div className="eyebrow it-sent">Status</div>
         <div />
       </div>
       {invites.map((inv, i) => (
         <InviteRow
-          key={inv.userId}
+          key={inv.inviteId}
           invite={inv}
           isLast={i === invites.length - 1}
           idx={i}
@@ -140,6 +147,7 @@ function InviteRow({
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmRevoke, setConfirmRevoke] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [notice, setNotice] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const closeMenu = () => {
@@ -147,9 +155,19 @@ function InviteRow({
     setConfirmRevoke(false);
   };
 
-  const revoke = () => {
+  const doRevoke = () => {
     startTransition(async () => {
-      await revokeInvite(invite.userId);
+      const res = await revokeInvite(invite.inviteId);
+      if (res && "error" in res && res.error) setNotice(res.error);
+      closeMenu();
+    });
+  };
+
+  const doResend = () => {
+    startTransition(async () => {
+      const res = await resendInvite(invite.inviteId);
+      if (res && "error" in res && res.error) setNotice(res.error);
+      else if (res && "success" in res && res.success) setNotice(res.success);
       closeMenu();
     });
   };
@@ -195,9 +213,20 @@ function InviteRow({
             {invite.email}
           </div>
           <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>
-            Pending · {humanAgo(invite.invitedAt)}
-            {invite.displayName && invite.displayName !== invite.email ? ` · invited as ${invite.displayName}` : ""}
+            {isExpired(invite) ? "Expired" : "Pending"} · sent {humanAgo(invite.invitedAt)}
           </div>
+          {notice && (
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 11,
+                color: "var(--ink-2)",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {notice}
+            </div>
+          )}
         </div>
       </div>
       <div className="it-role">
@@ -222,8 +251,26 @@ function InviteRow({
           {invite.role === "admin" ? "Admin" : "Member"}
         </span>
       </div>
-      <div className="it-sent" style={{ fontSize: 12, color: "var(--ink-3)" }}>
-        {humanAgo(invite.invitedAt)}
+      <div className="it-sent">
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "4px 10px",
+            borderRadius: 999,
+            background: isExpired(invite) ? "var(--neg-wash)" : "var(--surface-2)",
+            color: isExpired(invite) ? "var(--neg)" : "var(--ink-3)",
+            fontSize: 11,
+            fontWeight: 500,
+          }}
+        >
+          <span
+            aria-hidden
+            style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor" }}
+          />
+          {isExpired(invite) ? "Expired" : "Pending"}
+        </span>
       </div>
 
       <div style={{ justifySelf: "end" }}>
@@ -262,7 +309,7 @@ function InviteRow({
               <div style={{ display: "flex", gap: 6 }}>
                 <button
                   type="button"
-                  onClick={revoke}
+                  onClick={doRevoke}
                   disabled={pending}
                   className="btn btn-danger"
                   style={{ height: 30, padding: "0 10px", fontSize: 12 }}
@@ -280,30 +327,62 @@ function InviteRow({
               </div>
             </div>
           ) : (
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => setConfirmRevoke(true)}
-              style={{
-                display: "block",
-                width: "100%",
-                padding: "8px 10px",
-                fontSize: 13,
-                textAlign: "left",
-                background: "transparent",
-                border: "none",
-                borderRadius: 8,
-                color: "var(--neg)",
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--neg-wash)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-            >
-              Revoke invite
-            </button>
+            <>
+              <MenuItem
+                onClick={doResend}
+                disabled={pending}
+                label={isExpired(invite) ? "Resend invite (refresh link)" : "Resend invite"}
+              />
+              <MenuItem
+                onClick={() => setConfirmRevoke(true)}
+                disabled={pending}
+                label="Revoke invite"
+                danger
+              />
+            </>
           )}
         </ActionMenu>
       </div>
     </div>
+  );
+}
+
+function MenuItem({
+  onClick,
+  disabled,
+  label,
+  danger,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  label: string;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        display: "block",
+        width: "100%",
+        padding: "8px 10px",
+        fontSize: 13,
+        textAlign: "left",
+        background: "transparent",
+        border: "none",
+        borderRadius: 8,
+        color: danger ? "var(--neg)" : "var(--ink-2)",
+        cursor: disabled ? "default" : "pointer",
+      }}
+      onMouseEnter={(e) => {
+        if (disabled) return;
+        e.currentTarget.style.background = danger ? "var(--neg-wash)" : "var(--surface-2)";
+      }}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+    >
+      {label}
+    </button>
   );
 }

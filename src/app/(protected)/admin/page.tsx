@@ -27,16 +27,14 @@ export default async function AdminPage() {
       .select("user_id, role, joined_at, profiles(display_name, email)")
       .eq("tenant_id", tenantId)
       .order("joined_at", { ascending: true }),
-    // Pending invites live in tenant_invites — the row-level version of
-    // "there is someone we've asked to join, who hasn't clicked the link
-    // yet." Membership is only written on acceptance, so a brand-new
-    // invitee never shows up under tenant_members.
+    // Open invites = anything the admin can still act on. We intentionally
+    // include expired rows so admins can resend them; `accepted` and
+    // `revoked` are terminal and stay hidden.
     supabase
       .from("tenant_invites")
       .select("id, email, role, invited_by, created_at, expires_at, status")
       .eq("tenant_id", tenantId)
-      .eq("status", "pending")
-      .gt("expires_at", new Date().toISOString())
+      .in("status", ["pending", "expired"])
       .order("created_at", { ascending: false }),
   ]);
 
@@ -63,14 +61,17 @@ export default async function AdminPage() {
     invited_by: string | null;
     created_at: string;
     expires_at: string;
+    status: "pending" | "expired" | "accepted" | "revoked";
   };
   const inviteRows = (invitesRes.data ?? []) as unknown as InviteRow[];
   const pendingInvites: PendingInvite[] = inviteRows.map((i) => ({
-    userId: i.id, // row id serves as the unique key in the tab
+    inviteId: i.id,
     email: i.email,
     displayName: i.email.split("@")[0],
     role: (i.role === "admin" ? "admin" : "member") as "admin" | "member",
     invitedAt: i.created_at,
+    expiresAt: i.expires_at,
+    statusExpired: i.status === "expired",
   }));
 
   return (
