@@ -18,13 +18,20 @@ export async function login(
 
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: email.trim(),
     password,
   });
 
   if (error) {
     return { error: error.message };
+  }
+
+  // Backfill the password_set flag for accounts that predate it. Once set,
+  // future invite-link clicks correctly skip /auth/set-password.
+  const meta = (data.user?.user_metadata ?? {}) as { password_set?: boolean };
+  if (data.user && meta.password_set !== true) {
+    await supabase.auth.updateUser({ data: { ...meta, password_set: true } });
   }
 
   revalidatePath("/");
@@ -49,7 +56,15 @@ export async function setPassword(
 
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.updateUser({ password });
+  // Mark the account as "password set" and drop the invite_token (it served
+  // its purpose — carrying the first-invite acceptance — so we don't want it
+  // hanging around and re-triggering accept logic on future callback hits).
+  const { data: userRes } = await supabase.auth.getUser();
+  const existing = (userRes.user?.user_metadata ?? {}) as Record<string, unknown>;
+  const nextMeta = { ...existing, password_set: true };
+  delete (nextMeta as { invite_token?: string }).invite_token;
+
+  const { error } = await supabase.auth.updateUser({ password, data: nextMeta });
 
   if (error) {
     return { error: error.message };
@@ -61,4 +76,3 @@ export async function setPassword(
   // single-vs-multi-tenant routing and lands them on the right host.
   redirect("/auth/resume");
 }
-

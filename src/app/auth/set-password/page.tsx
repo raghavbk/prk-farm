@@ -12,6 +12,15 @@ export default async function SetPasswordPage() {
   // Must have a session (from the invite link).
   if (!user) redirect("/login");
 
+  // Already onboarded — skip the form. Prevents an existing user from being
+  // dumped back here when they click a fresh invite to a new tenant, and
+  // guards against a direct visit to /auth/set-password by someone who's
+  // already logged in.
+  const meta = (user.user_metadata ?? {}) as { password_set?: boolean; invite_token?: string };
+  if (meta.password_set === true || meta.invite_token === undefined) {
+    redirect("/auth/resume");
+  }
+
   const name = user.user_metadata?.display_name || user.user_metadata?.full_name || "there";
 
   return (

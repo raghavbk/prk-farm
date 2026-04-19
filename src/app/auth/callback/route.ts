@@ -20,18 +20,20 @@ const SWITCH_FLASH_COOKIE = "flash_prev_user_email";
 // back to /login.
 //
 // Flow shapes:
-//   new user (type=invite)
-//     → verifyOtp → accept invite (membership row, audit) → /auth/set-password
-//     → setPassword updates password → /auth/resume → tenant dashboard
+//   new user (invited, no password yet)
+//     → verifyOtp/exchangeCode → accept invite → /auth/set-password
+//     → setPassword updates password + sets password_set flag → /auth/resume
+//     → tenant dashboard
 //
-//   existing user re-invite (type=magiclink + invite_token)
-//     → verifyOtp → accept invite → /auth/resume → tenant dashboard
+//   existing user re-invite (already has a password)
+//     → verifyOtp/exchangeCode → accept invite → /auth/resume → tenant dashboard
 //
-// We deliberately write the membership row here rather than after
-// set-password. Running the accept step inside the same route handler as
-// the OTP verification keeps everything in a single cookie-aware hop,
-// instead of a Server-Action → redirect → Route-Handler chain that was
-// shedding session cookies and landing the user back on /login.
+// The set-password decision uses `user_metadata.password_set` rather than the
+// URL's `type` param because Supabase's PKCE flow often drops `type` on the
+// final redirect, so a brand-new invitee would otherwise skip set-password
+// and land on the dashboard without a password. The flag is written by
+// setPassword and backfilled by `login` on the first successful password
+// sign-in, so existing users don't get bounced to set-password.
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
@@ -100,13 +102,16 @@ export async function GET(request: Request) {
     // inviteUserByEmail) OR as a URL query param (existing users on
     // signInWithOtp — we stash it there because user_metadata is only
     // writable at account creation).
-    const metaToken = (user.user_metadata as { invite_token?: string } | null)?.invite_token;
+    const metadata = (user.user_metadata as { invite_token?: string; password_set?: boolean } | null) ?? {};
+    const metaToken = metadata.invite_token;
     const urlToken = searchParams.get("invite_token");
     const token = metaToken ?? urlToken;
-
-    // New user (first-time sign-in) — Supabase sets type=invite. They have
-    // no password yet, so they must set one before we can send them on.
-    const isFirstTimeInvite = type === "invite";
+    // Only brand-new invitees need set-password: they're the ones Supabase
+    // created via inviteUserByEmail with our invite_token stamped on their
+    // user_metadata. Existing users re-invited via signInWithOtp have no
+    // metaToken, so they skip the form even if `password_set` never got
+    // backfilled on their account.
+    const needsPassword = metaToken !== undefined && metadata.password_set !== true;
 
     if (token) {
       const outcome = await acceptInviteForUser(user, token);
@@ -129,12 +134,12 @@ export async function GET(request: Request) {
       }
       // Membership is now materialised. First-time invitees still need a
       // password; existing users go straight to the tenant router.
-      return isFirstTimeInvite ? "/auth/set-password" : "/auth/resume";
+      return needsPassword ? "/auth/set-password" : "/auth/resume";
     }
 
-    // No invite token on the link. For a first-time invite sign-up we
-    // still need to collect a password; otherwise let /auth/resume pick
-    // the right tenant / console.
-    return isFirstTimeInvite ? "/auth/set-password" : "/auth/resume";
+    // No invite token on the link. If the account still lacks a password
+    // (rare — means they got here via verifyOtp without completing onboarding)
+    // send them to set-password; otherwise hand off to the tenant router.
+    return needsPassword ? "/auth/set-password" : "/auth/resume";
   }
 }

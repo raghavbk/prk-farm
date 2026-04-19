@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isPlatformHost } from "@/lib/platform-hosts";
 
 // Central "where to send the user after login / on a stale cookie" decision.
 //
@@ -70,9 +71,20 @@ export async function GET(request: NextRequest) {
   if (tenantIds.length === 1) {
     const only = tenantIds[0];
     const primary = primaryByTenant.get(only);
-    const target = primary
-      ? `${schemeFor(primary)}://${primary}/`
-      : `${base.origin}/`;
+    let target: string;
+    if (primary) {
+      target = `${schemeFor(primary)}://${primary}/`;
+    } else if (!isPlatformHost(request.headers.get("host"))) {
+      // Current host is a tenant host — safe to land on its root.
+      target = `${base.origin}/`;
+    } else {
+      // No primary domain and we're on the platform apex. Falling back to
+      // `${base.origin}/` would trigger the protected layout's "Wrong door"
+      // notice. Route to the picker instead; its layout is minimal and shows
+      // the single tenant as a button.
+      base.pathname = "/tenants";
+      target = base.toString();
+    }
     const res = NextResponse.redirect(target);
     res.cookies.set("active_tenant_id", only, cookieOpts);
     return res;
