@@ -30,7 +30,12 @@ export async function GET(request: Request) {
     if (type === "invite") {
       const { data } = await supabase.auth.getUser();
       const token = (data.user?.user_metadata as { invite_token?: string } | null)?.invite_token;
-      if (token) return `/auth/set-password?next=/auth/accept-invite?token=${encodeURIComponent(token)}`;
+      if (token) {
+        // Encode the whole `next` value so its inner ?token=… isn't parsed as
+        // a sibling query parameter on /auth/set-password.
+        const acceptPath = `/auth/accept-invite?token=${encodeURIComponent(token)}`;
+        return `/auth/set-password?next=${encodeURIComponent(acceptPath)}`;
+      }
       return "/auth/set-password";
     }
     return "/";

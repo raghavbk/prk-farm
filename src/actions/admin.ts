@@ -131,12 +131,21 @@ export async function inviteMember(
     .maybeSingle();
   const host = primary?.domain ?? (process.env.NEXT_PUBLIC_SITE_URL ?? "chukta.in").replace(/^https?:\/\//, "");
   const scheme = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https";
+  // Supabase's invite email routes through its /auth/v1/verify endpoint and
+  // then bounces to `redirectTo`. That bounce has to land on OUR
+  // /auth/callback so the token_hash can be traded for a session on the
+  // tenant host — only then can /auth/accept-invite verify the caller.
+  // Going straight to /auth/accept-invite would arrive without a session
+  // cookie and get middleware-redirected to /login.
+  const callbackUrl = `${scheme}://${host}/auth/callback`;
   const acceptUrl = `${scheme}://${host}/auth/accept-invite?token=${invite.token}`;
 
   let emailSent = false;
   if (!existingProfile) {
     // Brand-new user — Supabase sends the sign-up email. The invite token
-    // travels via user_metadata so /auth/callback can forward to accept.
+    // travels via user_metadata so /auth/callback can forward to
+    // /auth/set-password?next=/auth/accept-invite?token=... after the OTP
+    // verification establishes the session.
     const name = displayName?.trim() || normalizedEmail.split("@")[0];
     const { error: mailErr } = await admin.auth.admin.inviteUserByEmail(normalizedEmail, {
       data: {
@@ -146,8 +155,7 @@ export async function inviteMember(
         invite_token: invite.token,
         invited_to_tenant: tenantId,
       },
-      // Callback hands off to /auth/accept-invite once they're signed in.
-      redirectTo: acceptUrl,
+      redirectTo: callbackUrl,
     });
     if (mailErr) {
       // Clean up the invite row so the operator can retry after fixing SMTP.
