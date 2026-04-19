@@ -42,7 +42,9 @@ export function MembersTab({
         background: "var(--card)",
         border: "1px solid var(--rule)",
         borderRadius: 14,
-        overflow: "hidden",
+        // No overflow: hidden — the per-row ⋯ menu popover needs to escape
+        // the card to render below/outside the bounding box. Without this,
+        // the action dropdown gets clipped by the card's rounded corners.
       }}
     >
       <style>{`
@@ -64,13 +66,17 @@ export function MembersTab({
           .mt-grid .mt-mobile-role { display: none; }
         }
       `}</style>
-      {/* Table header (desktop) */}
+      {/* Table header (desktop). Explicit top rounding so the surface-2
+          background doesn't bleed past the parent card's rounded corners
+          (we dropped overflow:hidden to let the action dropdown escape). */}
       <div
         className="mt-grid"
         style={{
           borderBottom: "1px solid var(--rule)",
           background: "var(--surface-2)",
           padding: "12px 18px",
+          borderTopLeftRadius: 13,
+          borderTopRightRadius: 13,
         }}
       >
         <div className="eyebrow">Member</div>

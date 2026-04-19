@@ -1,7 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveTenantId } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { canManageTenant } from "@/lib/platform";
 import { redirect } from "next/navigation";
 import { ViewTransition } from "react";
@@ -21,13 +20,24 @@ export default async function AdminPage() {
 
   const supabase = await createClient();
 
-  const [tenantRes, membersRes] = await Promise.all([
+  const [tenantRes, membersRes, invitesRes] = await Promise.all([
     supabase.from("tenants").select("*").eq("id", tenantId).single(),
     supabase
       .from("tenant_members")
       .select("user_id, role, joined_at, profiles(display_name, email)")
       .eq("tenant_id", tenantId)
       .order("joined_at", { ascending: true }),
+    // Pending invites live in tenant_invites — the row-level version of
+    // "there is someone we've asked to join, who hasn't clicked the link
+    // yet." Membership is only written on acceptance, so a brand-new
+    // invitee never shows up under tenant_members.
+    supabase
+      .from("tenant_invites")
+      .select("id, email, role, invited_by, created_at, expires_at, status")
+      .eq("tenant_id", tenantId)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false }),
   ]);
 
   type MemberRow = {
@@ -37,51 +47,31 @@ export default async function AdminPage() {
     profiles: { display_name: string; email: string } | null;
   };
   const rows = (membersRes.data ?? []) as unknown as MemberRow[];
-  const memberUserIds = rows.map((r) => r.user_id);
 
-  // A pending invite = a tenant_members row whose Supabase Auth user has not
-  // confirmed their email yet. Probe auth.users via the service-role admin
-  // client and classify by email_confirmed_at.
-  const pendingUserIds = new Set<string>();
-  if (memberUserIds.length > 0) {
-    try {
-      const admin = createAdminClient();
-      // admin.listUsers returns up to perPage; a tenant will be small so 1000 is plenty.
-      const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      for (const u of list?.users ?? []) {
-        if (memberUserIds.includes(u.id) && !u.email_confirmed_at) {
-          pendingUserIds.add(u.id);
-        }
-      }
-    } catch {
-      // Admin API unavailable (missing service role key) — treat everyone as confirmed.
-    }
-  }
+  const members: AdminMember[] = rows.map((r) => ({
+    userId: r.user_id,
+    role: (r.role === "admin" ? "admin" : "member") as "admin" | "member",
+    joinedAt: r.joined_at,
+    displayName: r.profiles?.display_name ?? "Unknown",
+    email: r.profiles?.email ?? "",
+  }));
 
-  const members: AdminMember[] = [];
-  const pendingInvites: PendingInvite[] = [];
-  for (const r of rows) {
-    const displayName = r.profiles?.display_name ?? "Unknown";
-    const email = r.profiles?.email ?? "";
-    const role = (r.role === "admin" ? "admin" : "member") as "admin" | "member";
-    if (pendingUserIds.has(r.user_id)) {
-      pendingInvites.push({
-        userId: r.user_id,
-        email,
-        displayName,
-        role,
-        invitedAt: r.joined_at,
-      });
-    } else {
-      members.push({
-        userId: r.user_id,
-        role,
-        joinedAt: r.joined_at,
-        displayName,
-        email,
-      });
-    }
-  }
+  type InviteRow = {
+    id: string;
+    email: string;
+    role: string;
+    invited_by: string | null;
+    created_at: string;
+    expires_at: string;
+  };
+  const inviteRows = (invitesRes.data ?? []) as unknown as InviteRow[];
+  const pendingInvites: PendingInvite[] = inviteRows.map((i) => ({
+    userId: i.id, // row id serves as the unique key in the tab
+    email: i.email,
+    displayName: i.email.split("@")[0],
+    role: (i.role === "admin" ? "admin" : "member") as "admin" | "member",
+    invitedAt: i.created_at,
+  }));
 
   return (
     <ViewTransition
