@@ -38,24 +38,26 @@ export default async function PlatformLayout({
           href="/platform"
           style={{
             display: "inline-flex",
-            alignItems: "baseline",
+            alignItems: "center",
             gap: 10,
             color: "var(--ink)",
             textDecoration: "none",
           }}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/chukta-mark.svg" alt="" aria-hidden="true" style={{ height: 28, width: 28 }} />
           <span
             style={{
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: 600,
-              letterSpacing: "-0.045em",
-              color: "var(--accent)",
+              letterSpacing: "-0.04em",
+              color: "var(--ink)",
               lineHeight: 1,
             }}
           >
             chukta
           </span>
-          <span className="eyebrow" style={{ color: "var(--ink-3)" }}>
+          <span className="eyebrow" style={{ color: "var(--ink-3)", marginLeft: 4 }}>
             platform
           </span>
         </Link>

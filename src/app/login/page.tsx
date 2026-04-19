@@ -34,20 +34,14 @@ export default async function LoginPage() {
           margin: "0 auto",
         }}
       >
-        {/* chukta wordmark */}
+        {/* chukta primary lockup */}
         <div style={{ paddingTop: "clamp(12px, 4vw, 40px)" }}>
-          <span
-            style={{
-              display: "inline-block",
-              fontSize: "clamp(28px, 3vw, 34px)",
-              fontWeight: 600,
-              color: "var(--accent)",
-              letterSpacing: "-0.045em",
-              lineHeight: 1,
-            }}
-          >
-            chukta
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/chukta-logo.svg"
+            alt="chukta"
+            style={{ height: "clamp(72px, 9vw, 96px)", width: "auto", display: "block" }}
+          />
         </div>
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", paddingTop: 40, paddingBottom: 40 }}>
@@ -61,9 +55,9 @@ export default async function LoginPage() {
               color: "var(--ink)",
             }}
           >
-            Settled. Done.
+            Money divides.
             <br />
-            <em style={{ color: "var(--accent)" }}>Chukta.</em>
+            <em style={{ color: "var(--accent)" }}>Chukta settles.</em>
           </h1>
           <p
             style={{
@@ -74,8 +68,8 @@ export default async function LoginPage() {
               maxWidth: 420,
             }}
           >
-            Split now, be chukta later. A quiet, auditable ledger of what you all paid —
-            split fairly by the ownership you already agreed on.
+            A quiet, auditable ledger of what you all paid — split fairly by the
+            ownership you already agreed on. Hisaab khatam, dosti kayam.
           </p>
 
           <LoginForm />

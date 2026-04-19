@@ -22,8 +22,8 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "chukta — Settled. Done.",
-  description: "Split now, be chukta later. Hisaab khatam, dosti kayam.",
+  title: "chukta — money divides, chukta settles",
+  description: "Money divides. Chukta settles. Hisaab khatam, dosti kayam.",
 };
 
 export const viewport: Viewport = {

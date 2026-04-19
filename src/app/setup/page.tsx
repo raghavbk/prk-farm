@@ -23,18 +23,12 @@ export default async function SetupPage() {
       <div className="mesh" style={{ position: "fixed", inset: 0, pointerEvents: "none", opacity: 0.6 }} />
       <div style={{ position: "relative", width: "100%", maxWidth: 460, alignSelf: "center" }}>
         <div style={{ marginBottom: 24 }}>
-          <span
-            style={{
-              display: "inline-block",
-              fontSize: "clamp(26px, 3vw, 32px)",
-              fontWeight: 600,
-              color: "var(--accent)",
-              letterSpacing: "-0.045em",
-              lineHeight: 1,
-            }}
-          >
-            chukta
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/chukta-logo.svg"
+            alt="chukta"
+            style={{ height: "clamp(60px, 7vw, 72px)", width: "auto", display: "block" }}
+          />
         </div>
 
         <h1

@@ -1,0 +1,13 @@
+<svg viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="chukta — Settled. Done.">
+  <title>chukta — Settled. Done.</title>
+  <desc>Circular C mark with integrated checkmark in settled green, paired with the chukta wordmark.</desc>
+  <g transform="translate(140, 90)">
+    <circle cx="80" cy="80" r="80" fill="#0F6E56"/>
+    <path d="M 80 20 A 60 60 0 1 0 138 95" stroke="#E1F5EE" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M 60 82 L 78 100 L 118 58" stroke="#E1F5EE" stroke-width="14" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g transform="translate(340, 130)">
+    <text x="0" y="40" font-family="Inter, -apple-system, system-ui, sans-serif" font-size="72" font-weight="500" fill="#085041" letter-spacing="-2">chukta</text>
+    <text x="4" y="70" font-family="Inter, -apple-system, system-ui, sans-serif" font-size="14" font-weight="400" fill="#5F5E5A" letter-spacing="4">SETTLED. DONE.</text>
+  </g>
+</svg>
