@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { acceptInviteForUser } from "@/lib/invites";
 
 // Auth-callback route handler.
 //
@@ -11,6 +12,20 @@ import { createClient } from "@/lib/supabase/server";
 // NextResponse.redirect() leaves the cookies behind, so the invitee ends
 // up on /auth/set-password without a session and middleware bounces them
 // back to /login.
+//
+// Flow shapes:
+//   new user (type=invite)
+//     → verifyOtp → accept invite (membership row, audit) → /auth/set-password
+//     → setPassword updates password → /auth/resume → tenant dashboard
+//
+//   existing user re-invite (type=magiclink + invite_token)
+//     → verifyOtp → accept invite → /auth/resume → tenant dashboard
+//
+// We deliberately write the membership row here rather than after
+// set-password. Running the accept step inside the same route handler as
+// the OTP verification keeps everything in a single cookie-aware hop,
+// instead of a Server-Action → redirect → Route-Handler chain that was
+// shedding session cookies and landing the user back on /login.
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
@@ -20,7 +35,6 @@ export async function GET(request: Request) {
   const errorCode = searchParams.get("error_code");
   const errorDescription = searchParams.get("error_description");
 
-  // Supabase's /verify bounced here with an error (expired / already used).
   if (errorParam) {
     const reason = errorCode || errorParam;
     const message = errorDescription || reason;
@@ -28,38 +42,6 @@ export async function GET(request: Request) {
   }
 
   const supabase = await createClient();
-
-  // After OTP verification / code exchange, decide where to send them.
-  //  invite (new user)        → /auth/set-password?next=/auth/accept-invite?token=X
-  //                               (token from user_metadata, they still need
-  //                                to set a password)
-  //  invite (no token)        → /auth/set-password
-  //  magiclink + invite_token → /auth/accept-invite?token=X  (existing user,
-  //                               password already exists, just complete the
-  //                               invite)
-  //  anything else            → /
-  async function nextDestination(): Promise<string> {
-    const inviteTokenFromUrl = searchParams.get("invite_token");
-
-    if (type === "invite") {
-      const { data } = await supabase.auth.getUser();
-      const metaToken = (data.user?.user_metadata as { invite_token?: string } | null)?.invite_token;
-      const token = metaToken ?? inviteTokenFromUrl;
-      if (token) {
-        const acceptPath = `/auth/accept-invite?token=${encodeURIComponent(token)}`;
-        return `/auth/set-password?next=${encodeURIComponent(acceptPath)}`;
-      }
-      return "/auth/set-password";
-    }
-
-    if (type === "magiclink" && inviteTokenFromUrl) {
-      // Existing user accepting a re-invite — they already have a password,
-      // skip set-password and go straight to the membership write.
-      return `/auth/accept-invite?token=${encodeURIComponent(inviteTokenFromUrl)}`;
-    }
-
-    return "/";
-  }
 
   if (tokenHash) {
     const { error } = await supabase.auth.verifyOtp({
@@ -69,16 +51,61 @@ export async function GET(request: Request) {
     if (error) {
       redirect(`/login?error=otp_failed&message=${encodeURIComponent(error.message)}`);
     }
-    redirect(await nextDestination());
-  }
-
-  if (code) {
+  } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       redirect(`/login?error=code_exchange_failed&message=${encodeURIComponent(error.message)}`);
     }
-    redirect(await nextDestination());
+  } else {
+    redirect("/login?error=invalid_link");
   }
 
-  redirect("/login?error=invalid_link");
+  redirect(await nextDestination());
+
+  async function nextDestination(): Promise<string> {
+    const { data } = await supabase.auth.getUser();
+    const user = data.user;
+    if (!user) return "/login?error=session_missing";
+
+    // Invite token may travel via user_metadata (new users, set during
+    // inviteUserByEmail) OR as a URL query param (existing users on
+    // signInWithOtp — we stash it there because user_metadata is only
+    // writable at account creation).
+    const metaToken = (user.user_metadata as { invite_token?: string } | null)?.invite_token;
+    const urlToken = searchParams.get("invite_token");
+    const token = metaToken ?? urlToken;
+
+    // New user (first-time sign-in) — Supabase sets type=invite. They have
+    // no password yet, so they must set one before we can send them on.
+    const isFirstTimeInvite = type === "invite";
+
+    if (token) {
+      const outcome = await acceptInviteForUser(user, token);
+      if (!outcome.ok) {
+        // Surface the reason on /login so the user sees a plain-English
+        // message rather than a silent bounce. We don't block the sign-in
+        // itself — they still have a valid session, they're just not a
+        // member of the invited tenant.
+        const reason =
+          outcome.reason === "wrong_account"
+            ? "invite_wrong_account"
+            : outcome.reason === "expired"
+              ? "invite_expired"
+              : outcome.reason === "wrong_state"
+                ? "invite_used"
+                : "invite";
+        // Strand the user on /tenants so they can pick an existing tenant
+        // if they belong to any; the error banner explains what went wrong.
+        return `/tenants?error=${reason}`;
+      }
+      // Membership is now materialised. First-time invitees still need a
+      // password; existing users go straight to the tenant router.
+      return isFirstTimeInvite ? "/auth/set-password" : "/auth/resume";
+    }
+
+    // No invite token on the link. For a first-time invite sign-up we
+    // still need to collect a password; otherwise let /auth/resume pick
+    // the right tenant / console.
+    return isFirstTimeInvite ? "/auth/set-password" : "/auth/resume";
+  }
 }

@@ -3,11 +3,7 @@ import { redirect } from "next/navigation";
 import { SetPasswordForm } from "./set-password-form";
 import { I } from "@/components/ui/icons";
 
-export default async function SetPasswordPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ next?: string }>;
-}) {
+export default async function SetPasswordPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,7 +13,6 @@ export default async function SetPasswordPage({
   if (!user) redirect("/login");
 
   const name = user.user_metadata?.display_name || user.user_metadata?.full_name || "there";
-  const { next } = await searchParams;
 
   return (
     <main
@@ -80,7 +75,7 @@ export default async function SetPasswordPage({
           Set a password to finish your account setup. You&rsquo;ll use this the next time you sign in.
         </p>
 
-        <SetPasswordForm next={next} />
+        <SetPasswordForm />
       </div>
     </main>
   );

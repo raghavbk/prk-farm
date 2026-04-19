@@ -3,12 +3,11 @@
 import { useActionState } from "react";
 import { setPassword, type AuthActionResult } from "@/actions/auth";
 
-export function SetPasswordForm({ next }: { next?: string }) {
+export function SetPasswordForm() {
   const [state, formAction, pending] = useActionState<AuthActionResult, FormData>(setPassword, undefined);
 
   return (
     <form action={formAction} className="space-y-5">
-      {next && <input type="hidden" name="next" value={next} />}
       <div>
         <label htmlFor="password" className="section-label mb-2 block">New Password</label>
         <input

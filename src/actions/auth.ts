@@ -39,7 +39,6 @@ export async function setPassword(
 ): Promise<AuthActionResult> {
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
-  const next = (formData.get("next") as string | null)?.trim() ?? "";
 
   if (!password || password.length < 6) {
     return { error: "Password must be at least 6 characters" };
@@ -57,13 +56,9 @@ export async function setPassword(
   }
 
   revalidatePath("/");
-  // If the invite flow passed a `next` URL (accept-invite with a token),
-  // honour it so the invitee lands on the acceptance handler. Only allow
-  // same-origin paths so this can't be turned into an open redirect.
-  if (next && next.startsWith("/")) {
-    redirect(next);
-  }
-  // Default: /auth/resume picks the right destination from memberships.
+  // Invite acceptance already happened in /auth/callback, so at this point
+  // the user is a full member of their tenant. /auth/resume handles the
+  // single-vs-multi-tenant routing and lands them on the right host.
   redirect("/auth/resume");
 }
 
