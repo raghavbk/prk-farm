@@ -73,29 +73,53 @@ export async function inviteMember(
     if (existingMember) return { error: "This user is already a member of this tenant." };
   }
 
-  // Reuse or create the pending invite row. The (tenant_id, lower(email)) unique
-  // partial index makes sure a tenant can't stack multiple pending invites
-  // for the same email — the conflict path just updates the token + expiry
-  // so the most recent invite is the one that works.
+  // Reuse or create the pending invite row. We can't use upsert with
+  // onConflict here because the uniqueness guarantee is a partial
+  // expression index ( (tenant_id, lower(email)) WHERE status='pending' ),
+  // which Postgres' ON CONFLICT can't infer without an exact column list.
+  // Instead: probe first, then UPDATE existing pending row or INSERT.
   const token = makeInviteToken();
-  const { data: invite, error: inviteErr } = await admin
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: existingInvite } = await admin
     .from("tenant_invites")
-    .upsert(
-      {
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("email", normalizedEmail)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  let invite: { id: string; token: string };
+  if (existingInvite) {
+    const { data, error } = await admin
+      .from("tenant_invites")
+      .update({
+        token,
+        role,
+        invited_by: user.id,
+        expires_at: expiresAt,
+      })
+      .eq("id", existingInvite.id)
+      .select("id, token")
+      .single();
+    if (error || !data) return { error: error?.message ?? "Could not refresh invite." };
+    invite = data;
+  } else {
+    const { data, error } = await admin
+      .from("tenant_invites")
+      .insert({
         tenant_id: tenantId,
         email: normalizedEmail,
         role,
         token,
         invited_by: user.id,
         status: "pending",
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      { onConflict: "tenant_id,email", ignoreDuplicates: false },
-    )
-    .select("id, token")
-    .single();
-  if (inviteErr || !invite) {
-    return { error: inviteErr?.message ?? "Could not create invite." };
+        expires_at: expiresAt,
+      })
+      .select("id, token")
+      .single();
+    if (error || !data) return { error: error?.message ?? "Could not create invite." };
+    invite = data;
   }
 
   // Primary domain → invitee lands on the tenant host after accept.
