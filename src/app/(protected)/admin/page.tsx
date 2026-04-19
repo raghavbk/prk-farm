@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getActiveTenantId } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { canManageTenant } from "@/lib/platform";
 import { redirect } from "next/navigation";
 import { ViewTransition } from "react";
 import { AdminShell } from "./admin-shell";
@@ -15,16 +16,10 @@ export default async function AdminPage() {
   const tenantId = await getActiveTenantId();
   if (!tenantId) redirect("/tenants");
 
+  // Tenant admin OR platform admin.
+  if (!(await canManageTenant(tenantId))) redirect("/");
+
   const supabase = await createClient();
-
-  const { data: membership } = await supabase
-    .from("tenant_members")
-    .select("role")
-    .eq("tenant_id", tenantId)
-    .eq("user_id", user.id)
-    .single();
-
-  if (membership?.role !== "owner") redirect("/");
 
   const [tenantRes, membersRes] = await Promise.all([
     supabase.from("tenants").select("*").eq("id", tenantId).single(),
@@ -68,7 +63,7 @@ export default async function AdminPage() {
   for (const r of rows) {
     const displayName = r.profiles?.display_name ?? "Unknown";
     const email = r.profiles?.email ?? "";
-    const role = (r.role === "owner" ? "owner" : "member") as "owner" | "member";
+    const role = (r.role === "admin" ? "admin" : "member") as "admin" | "member";
     if (pendingUserIds.has(r.user_id)) {
       pendingInvites.push({
         userId: r.user_id,

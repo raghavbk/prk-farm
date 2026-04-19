@@ -43,32 +43,36 @@ export default async function ProtectedLayout({
   }
 
   if (!activeTenantId) {
-    redirect("/tenants");
+    // /auth/resume auto-picks the single tenant, or sends to /tenants when
+    // there are multiple memberships / none.
+    redirect("/auth/resume");
   }
 
-  const [tenantRes, memberCountRes, profileRes, membershipRes, summaryRes] = await Promise.all([
+  const [tenantRes, memberCountRes, profileRes, membershipRes, summaryRes, myTenantCountRes, isPlatform] = await Promise.all([
     supabase.from("tenants").select("name").eq("id", activeTenantId).single(),
     supabase.from("tenant_members").select("user_id", { count: "exact", head: true }).eq("tenant_id", activeTenantId),
     supabase.from("profiles").select("display_name").eq("id", user.id).single(),
     supabase.from("tenant_members").select("role").eq("tenant_id", activeTenantId).eq("user_id", user.id).maybeSingle(),
     supabase.rpc("tenant_summary", { p_tenant_id: activeTenantId, p_user_id: user.id }),
+    supabase.from("tenant_members").select("tenant_id", { count: "exact", head: true }).eq("user_id", user.id),
+    isCurrentUserPlatformAdmin(),
   ]);
 
-  // Stale / orphaned cookie: tenant doesn't exist or user isn't a member in it.
-  // Happens after env switches (prod ↔ UAT) or when a tenant gets deleted.
-  // Server Components can't write cookies, so punt to the picker — switching
-  // tenants there will overwrite the stale cookie via a server action.
+  // Stale / orphaned cookie: tenant doesn't exist or user isn't a member in
+  // it. Happens after env switches (prod ↔ UAT) or when a tenant gets
+  // deleted. /auth/resume (a route handler) can set a fresh cookie.
   if (!tenantRes.data || !membershipRes.data) {
-    redirect("/tenants");
+    redirect("/auth/resume");
   }
 
   const tenantName = tenantRes.data.name;
   const tenantMemberCount = memberCountRes.count ?? 0;
   const userName = profileRes.data?.display_name ?? user.email ?? "You";
   const role = membershipRes.data.role;
-  const roleLabel = role === "owner" ? "Tenant Owner" : role === "admin" ? "Tenant Admin" : "Member";
-  const isAdmin = role === "owner" || role === "admin";
+  const roleLabel = role === "admin" ? "Tenant Admin" : "Member";
+  const isAdmin = role === "admin" || isPlatform;
   const totals = summaryRes.data?.[0] ?? { total_you_owe: 0, total_owed_to_you: 0 };
+  const hasMultipleTenants = (myTenantCountRes.count ?? 0) > 1;
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)", color: "var(--ink)" }}>
@@ -81,6 +85,7 @@ export default async function ProtectedLayout({
         totalYouOwe={Number(totals.total_you_owe) || 0}
         totalOwedToYou={Number(totals.total_owed_to_you) || 0}
         isTenantAdmin={isAdmin}
+        hasMultipleTenants={hasMultipleTenants}
       />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <MobileTopBar tenantName={tenantName} />

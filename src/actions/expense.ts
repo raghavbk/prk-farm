@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth";
+import { canManageTenant } from "@/lib/platform";
 import { logAction } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -124,32 +126,25 @@ export async function editExpense(
 
   const supabase = await createClient();
 
-  // Fetch existing expense for auth check
   const { data: existing } = await supabase
     .from("expenses")
     .select("*, groups(tenant_id)")
     .eq("id", expenseId)
     .single();
-
   if (!existing) return { error: "Expense not found" };
 
-  // Auth check: creator or tenant owner
-  const tenantId = (existing.groups as unknown as { tenant_id: string })
-    ?.tenant_id;
-  const { data: membership } = await supabase
-    .from("tenant_members")
-    .select("role")
-    .eq("tenant_id", tenantId)
-    .eq("user_id", user.id)
-    .single();
+  const tenantId = (existing.groups as unknown as { tenant_id: string })?.tenant_id;
 
-  const isTenantOwner = membership?.role === "owner";
-  if (existing.created_by !== user.id && !isTenantOwner) {
-    return { error: "You can only edit your own expenses" };
+  // Auth: creator, tenant admin, or platform admin.
+  const isElevated = await canManageTenant(tenantId);
+  if (existing.created_by !== user.id && !isElevated) {
+    return { error: "You can only edit your own expenses." };
   }
+  // Elevated users go through the service role so the write doesn't depend
+  // on the old is_tenant_owner RLS branch; creators use their own session.
+  const writer = isElevated ? createAdminClient() : supabase;
 
-  // Update the expense
-  const { error: updateError } = await supabase
+  const { error: updateError } = await writer
     .from("expenses")
     .update({
       description: description.trim(),
@@ -159,21 +154,18 @@ export async function editExpense(
       updated_at: new Date().toISOString(),
     })
     .eq("id", expenseId);
-
   if (updateError) return { error: updateError.message };
 
-  // If amount changed, recalculate splits using STORED share_pct
   if (amount !== existing.amount) {
-    const { data: splits } = await supabase
+    const { data: splits } = await writer
       .from("expense_splits")
       .select("id, share_pct")
       .eq("expense_id", expenseId);
 
     if (splits) {
       for (const split of splits) {
-        const newAmount =
-          Math.round(amount * Number(split.share_pct)) / 100;
-        await supabase
+        const newAmount = Math.round(amount * Number(split.share_pct)) / 100;
+        await writer
           .from("expense_splits")
           .update({ share_amount: newAmount })
           .eq("id", split.id);
@@ -205,35 +197,22 @@ export async function deleteExpense(expenseId: string, groupId: string) {
 
   const supabase = await createClient();
 
-  // Fetch expense for auth check
   const { data: existing } = await supabase
     .from("expenses")
     .select("created_by, group_id, groups(tenant_id)")
     .eq("id", expenseId)
     .single();
-
   if (!existing) return { error: "Expense not found" };
 
-  const tenantId = (existing.groups as unknown as { tenant_id: string })
-    ?.tenant_id;
-  const { data: membership } = await supabase
-    .from("tenant_members")
-    .select("role")
-    .eq("tenant_id", tenantId)
-    .eq("user_id", user.id)
-    .single();
+  const tenantId = (existing.groups as unknown as { tenant_id: string })?.tenant_id;
 
-  const isTenantOwner = membership?.role === "owner";
-  if (existing.created_by !== user.id && !isTenantOwner) {
-    return { error: "You can only delete your own expenses" };
+  const isElevated = await canManageTenant(tenantId);
+  if (existing.created_by !== user.id && !isElevated) {
+    return { error: "You can only delete your own expenses." };
   }
+  const writer = isElevated ? createAdminClient() : supabase;
 
-  // Delete (splits cascade)
-  const { error } = await supabase
-    .from("expenses")
-    .delete()
-    .eq("id", expenseId);
-
+  const { error } = await writer.from("expenses").delete().eq("id", expenseId);
   if (error) return { error: error.message };
 
   await logAction({

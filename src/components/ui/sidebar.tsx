@@ -23,6 +23,7 @@ type Props = {
   totalYouOwe: number;
   totalOwedToYou: number;
   isTenantAdmin: boolean;
+  hasMultipleTenants: boolean;
 };
 
 export function Sidebar({
@@ -34,6 +35,7 @@ export function Sidebar({
   totalYouOwe,
   totalOwedToYou,
   isTenantAdmin,
+  hasMultipleTenants,
 }: Props) {
   const pathname = usePathname() ?? "/";
 
@@ -61,10 +63,9 @@ export function Sidebar({
         viewTransitionName: "site-nav",
       }}
     >
-      {/* Tenant switcher */}
-      <Link
-        href="/tenants"
-        style={{
+      {/* Tenant card — linked to /tenants only when there's a real choice. */}
+      {(() => {
+        const cardStyle: React.CSSProperties = {
           display: "flex",
           alignItems: "center",
           gap: 10,
@@ -74,43 +75,54 @@ export function Sidebar({
           border: "1px solid var(--rule)",
           textDecoration: "none",
           marginBottom: 20,
-        }}
-      >
-        <span
-          aria-hidden
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            background: "var(--accent)",
-            color: "var(--accent-ink)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <I.leaf size={14} />
-        </span>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span
-            style={{
-              display: "block",
-              fontSize: 13,
-              fontWeight: 500,
-              color: "var(--ink)",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {tenantName}
-          </span>
-          <span style={{ display: "block", fontSize: 10, color: "var(--ink-3)", fontFamily: "var(--font-mono)" }}>
-            {tenantMemberCount} {tenantMemberCount === 1 ? "member" : "members"}
-          </span>
-        </span>
-        <I.chevron size={14} stroke="var(--ink-3)" />
-      </Link>
+          color: "var(--ink)",
+        };
+        const inside = (
+          <>
+            <span
+              aria-hidden
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: "var(--accent)",
+                color: "var(--accent-ink)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <I.leaf size={14} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span
+                style={{
+                  display: "block",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "var(--ink)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {tenantName}
+              </span>
+              <span style={{ display: "block", fontSize: 10, color: "var(--ink-3)", fontFamily: "var(--font-mono)" }}>
+                {tenantMemberCount} {tenantMemberCount === 1 ? "member" : "members"}
+              </span>
+            </span>
+            {hasMultipleTenants && <I.chevron size={14} stroke="var(--ink-3)" />}
+          </>
+        );
+        return hasMultipleTenants ? (
+          <Link href="/tenants" style={cardStyle}>
+            {inside}
+          </Link>
+        ) : (
+          <div style={cardStyle}>{inside}</div>
+        );
+      })()}
 
       {/* Nav */}
       <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>

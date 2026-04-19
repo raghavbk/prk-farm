@@ -28,7 +28,9 @@ export async function login(
   }
 
   revalidatePath("/");
-  redirect("/");
+  // /auth/resume decides where to send the user based on their memberships
+  // and platform-admin status.
+  redirect("/auth/resume");
 }
 
 export async function setPassword(
@@ -54,6 +56,8 @@ export async function setPassword(
   }
 
   revalidatePath("/");
-  redirect("/");
+  // /auth/resume decides where to send the user based on their memberships
+  // and platform-admin status.
+  redirect("/auth/resume");
 }
 

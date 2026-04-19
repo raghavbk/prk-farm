@@ -33,14 +33,12 @@ export default async function ProfilePage() {
   const email = profile?.email ?? user.email ?? "";
 
   const activeMembership = memberships.find((m) => m.tenant_id === activeTenantId);
-  const roleLabel =
-    activeMembership?.role === "owner"
-      ? "Tenant owner"
-      : activeMembership?.role === "admin"
-        ? "Tenant admin"
-        : activeMembership
-          ? "Member"
-          : null;
+  const roleLabel = activeMembership
+    ? activeMembership.role === "admin"
+      ? "Tenant admin"
+      : "Member"
+    : null;
+  const hasMultipleTenants = memberships.length > 1;
 
   // The platform console only serves on the platform apex, so a relative
   // /platform link on a tenant host (e.g. expense.vibenaturals.in) would just
@@ -168,7 +166,7 @@ export default async function ProfilePage() {
               marginBottom: 24,
             }}
           >
-            {activeMembership && activeMembership.role === "owner" && (
+            {(activeMembership?.role === "admin" || isPlatform) && (
               <Link
                 href="/admin"
                 style={{
@@ -186,22 +184,24 @@ export default async function ProfilePage() {
                 <I.chevron size={14} stroke="var(--ink-4)" />
               </Link>
             )}
-            <Link
-              href="/tenants"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-                padding: "14px 16px",
-                textDecoration: "none",
-                color: "inherit",
-                borderBottom: isPlatform ? "1px solid var(--rule-2)" : "none",
-              }}
-            >
-              <I.users size={16} stroke="var(--ink-2)" />
-              <span style={{ flex: 1, fontSize: 14 }}>Switch tenant</span>
-              <I.chevron size={14} stroke="var(--ink-4)" />
-            </Link>
+            {hasMultipleTenants && (
+              <Link
+                href="/tenants"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "14px 16px",
+                  textDecoration: "none",
+                  color: "inherit",
+                  borderBottom: isPlatform ? "1px solid var(--rule-2)" : "none",
+                }}
+              >
+                <I.users size={16} stroke="var(--ink-2)" />
+                <span style={{ flex: 1, fontSize: 14 }}>Switch tenant</span>
+                <I.chevron size={14} stroke="var(--ink-4)" />
+              </Link>
+            )}
             {isPlatform && (
               <a
                 href={platformConsoleUrl}

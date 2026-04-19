@@ -11,7 +11,7 @@ export function InviteDialog({
   tenantName: string;
   onClose: () => void;
 }) {
-  const [role, setRole] = useState<"member" | "owner">("member");
+  const [role, setRole] = useState<"member" | "admin">("member");
   const [state, formAction, pending] = useActionState<AdminActionResult, FormData>(
     inviteMember,
     undefined,
@@ -201,10 +201,10 @@ export function InviteDialog({
                 onClick={() => setRole("member")}
               />
               <RoleOption
-                label="Owner"
-                desc="Full control · manage members"
-                selected={role === "owner"}
-                onClick={() => setRole("owner")}
+                label="Tenant admin"
+                desc="Invite members · manage access"
+                selected={role === "admin"}
+                onClick={() => setRole("admin")}
               />
             </div>
 

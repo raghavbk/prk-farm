@@ -6,7 +6,6 @@ import { getPlatformApex } from "@/lib/platform-hosts";
 import { redirect } from "next/navigation";
 import { ViewTransition } from "react";
 import { switchTenant } from "@/actions/tenant";
-import { CreateTenantForm } from "./create-tenant-form";
 import { TenantSwitchButton } from "./tenant-switch-button";
 import { I } from "@/components/ui/icons";
 
@@ -26,73 +25,86 @@ export default async function TenantsPage() {
     isCurrentUserPlatformAdmin(),
   ]);
 
-  const memberships = membershipsRes.data;
-  const tenants =
-    memberships?.map((m) => ({
-      ...(m.tenants as unknown as { id: string; name: string; created_at: string }),
-      role: m.role,
-    })) ?? [];
+  const memberships = membershipsRes.data ?? [];
+
+  // The picker only makes sense when there's an actual choice. One or zero
+  // memberships: /auth/resume picks the right destination (auto-select the
+  // sole tenant, or show the empty state).
+  if (memberships.length <= 1) {
+    redirect("/auth/resume");
+  }
+
+  const tenants = memberships.map((m) => ({
+    ...(m.tenants as unknown as { id: string; name: string; created_at: string }),
+    role: m.role,
+  }));
   const platformApex = getPlatformApex();
-  const platformConsoleUrl = platformApex.startsWith("localhost")
+  const platformConsoleUrl = platformApex.startsWith("localhost") || platformApex.startsWith("127.")
     ? `http://${platformApex}/platform`
     : `https://${platformApex}/platform`;
 
   return (
     <ViewTransition enter="fade-in" exit="fade-out" default="none">
-    <main className="mx-auto w-full max-w-[1120px] px-5 sm:px-8 py-8 sm:py-10">
-      <h1 className="font-display text-2xl font-semibold text-ink">Your Farms</h1>
-      <p className="mt-2 text-sm text-ink-muted">
-        Choose a farm to work in, or create a new one.
-      </p>
-
-      {isPlatform && (
-        <div
+      <main className="mx-auto w-full max-w-[1120px] px-5 sm:px-8 py-8 sm:py-10">
+        <div className="eyebrow" style={{ marginBottom: 8 }}>
+          Switch tenant · {tenants.length} memberships
+        </div>
+        <h1
+          className="serif"
           style={{
-            marginTop: 18,
-            padding: "12px 14px",
-            borderRadius: 12,
-            background: "var(--accent-wash)",
-            border: "1px solid color-mix(in oklch, var(--accent) 20%, transparent)",
-            color: "var(--ink-2)",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            flexWrap: "wrap",
+            fontSize: "clamp(28px, 4.5vw, 40px)",
+            margin: 0,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.15,
           }}
         >
-          <span
-            aria-hidden
+          Your farms
+        </h1>
+        <p style={{ marginTop: 10, fontSize: 14, color: "var(--ink-3)" }}>
+          Pick the farm you want to work in. You&rsquo;ll land on its own URL.
+        </p>
+
+        {isPlatform && (
+          <div
             style={{
-              width: 22,
-              height: 22,
-              borderRadius: "50%",
-              background: "var(--accent)",
-              color: "var(--accent-ink)",
-              display: "inline-flex",
+              marginTop: 18,
+              padding: "12px 14px",
+              borderRadius: 12,
+              background: "var(--accent-wash)",
+              border: "1px solid color-mix(in oklch, var(--accent) 20%, transparent)",
+              color: "var(--ink-2)",
+              display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
+              gap: 10,
+              flexWrap: "wrap",
             }}
           >
-            <I.leaf size={12} />
-          </span>
-          <span style={{ fontSize: 13 }}>
-            You&rsquo;re a platform admin. Manage every tenant from{" "}
-            <a href={platformConsoleUrl} style={{ color: "var(--accent)" }}>
-              {platformApex}/platform
-            </a>
-            .
-          </span>
-        </div>
-      )}
+            <span
+              aria-hidden
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                background: "var(--accent)",
+                color: "var(--accent-ink)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <I.leaf size={12} />
+            </span>
+            <span style={{ fontSize: 13 }}>
+              You&rsquo;re a platform admin. Manage every tenant from{" "}
+              <a href={platformConsoleUrl} style={{ color: "var(--accent)" }}>
+                {platformApex}/platform
+              </a>
+              .
+            </span>
+          </div>
+        )}
 
-      {tenants.length === 0 ? (
-        <div className="mt-8 rounded-xl border-2 border-dashed border-border py-10 text-center">
-          <p className="text-sm text-ink-faint">
-            You don&apos;t belong to any farms yet. Create one to get started.
-          </p>
-        </div>
-      ) : (
         <ul className="mt-6 space-y-2">
           {tenants.map((tenant) => (
             <li key={tenant.id}>
@@ -106,10 +118,7 @@ export default async function TenantsPage() {
             </li>
           ))}
         </ul>
-      )}
-
-      <CreateTenantForm />
-    </main>
+      </main>
     </ViewTransition>
   );
 }

@@ -7,7 +7,7 @@ import { I } from "@/components/ui/icons";
 
 export type AdminMember = {
   userId: string;
-  role: "owner" | "member";
+  role: "admin" | "member";
   joinedAt: string;
   displayName: string;
   email: string;
@@ -106,7 +106,7 @@ function MemberRow({
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const hideMenu = isMe;
-  const roleLabel = member.role === "owner" ? "Owner" : "Member";
+  const roleLabel = member.role === "admin" ? "Tenant admin" : "Member";
   const joined = humanJoined(member.joinedAt);
 
   return (
@@ -230,12 +230,12 @@ function MemberRow({
             }}
           >
             <MenuItem
-              label={member.role === "owner" ? "Demote to member" : "Make owner"}
+              label={member.role === "admin" ? "Demote to member" : "Promote to tenant admin"}
               onClick={() => {
                 setMenuOpen(false);
                 updateMemberRole(
                   member.userId,
-                  member.role === "owner" ? "member" : "owner",
+                  member.role === "admin" ? "member" : "admin",
                 );
               }}
             />
@@ -281,9 +281,9 @@ function MemberRow({
   );
 }
 
-function RolePill({ role, disabled }: { role: "owner" | "member"; disabled: boolean }) {
+function RolePill({ role, disabled }: { role: "admin" | "member"; disabled: boolean }) {
   const c =
-    role === "owner"
+    role === "admin"
       ? { bg: "var(--accent-wash)", fg: "var(--accent)" }
       : { bg: "var(--surface-2)", fg: "var(--ink-2)" };
   return (
@@ -307,7 +307,7 @@ function RolePill({ role, disabled }: { role: "owner" | "member"; disabled: bool
         aria-hidden
         style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor" }}
       />
-      {role === "owner" ? "Owner" : "Member"}
+      {role === "admin" ? "Admin" : "Member"}
     </span>
   );
 }

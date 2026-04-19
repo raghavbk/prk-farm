@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveTenantId } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
+import { canManageTenant } from "@/lib/platform";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ViewTransition } from "react";
@@ -59,7 +60,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
 
   const supabase = await createClient();
 
-  const [groupRes, membersRes, expensesRes, balancesRes, membershipRes] = await Promise.all([
+  const [groupRes, membersRes, expensesRes, balancesRes] = await Promise.all([
     supabase.from("groups").select("id, name, updated_at, created_at").eq("id", groupId).eq("tenant_id", tenantId).single(),
     supabase
       .from("group_members")
@@ -72,15 +73,16 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
       .order("date", { ascending: false })
       .order("created_at", { ascending: false }),
     supabase.from("group_balances").select("*").eq("group_id", groupId),
-    supabase.from("tenant_members").select("role").eq("tenant_id", tenantId).eq("user_id", user.id).single(),
   ]);
 
   const group = groupRes.data;
   if (!group) notFound();
 
-  const role = membershipRes.data?.role ?? "member";
-  const isTenantOwner = role === "owner";
-  const isTenantAdmin = role === "owner" || role === "admin";
+  const isTenantAdmin = await canManageTenant(tenantId);
+  // Retained name — callers used this to allow "elevated edit/delete" of
+  // other people's expenses. Today's equivalent: tenant admin or platform
+  // admin.
+  const isTenantOwner = isTenantAdmin;
 
   type MemberRow = { user_id: string; ownership_pct: number; profiles: { id: string; display_name: string; email: string } | null };
   const rawMembers = (membersRes.data ?? []) as unknown as MemberRow[];

@@ -17,10 +17,11 @@ export default function PreviewLayout({ children }: { children: React.ReactNode 
         tenantMemberCount={TENANT.memberCount}
         userName={me.name}
         userId={me.id}
-        userRoleLabel="Tenant Owner"
+        userRoleLabel="Tenant admin"
         totalYouOwe={SUMMARY.totalYouOwe}
         totalOwedToYou={SUMMARY.totalOwedToYou}
         isTenantAdmin={true}
+        hasMultipleTenants={false}
       />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <MobileTopBar tenantName={TENANT.name} />

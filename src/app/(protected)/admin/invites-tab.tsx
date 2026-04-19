@@ -6,7 +6,7 @@ export type PendingInvite = {
   userId: string;
   email: string;
   displayName: string;
-  role: "owner" | "member";
+  role: "admin" | "member";
   invitedAt: string;
 };
 
@@ -163,8 +163,8 @@ export function InvitesTab({
                 gap: 6,
                 padding: "5px 10px",
                 borderRadius: 999,
-                background: inv.role === "owner" ? "var(--accent-wash)" : "var(--surface-2)",
-                color: inv.role === "owner" ? "var(--accent)" : "var(--ink-2)",
+                background: inv.role === "admin" ? "var(--accent-wash)" : "var(--surface-2)",
+                color: inv.role === "admin" ? "var(--accent)" : "var(--ink-2)",
                 fontSize: 12,
                 fontWeight: 500,
                 opacity: 0.85,
@@ -174,7 +174,7 @@ export function InvitesTab({
                 aria-hidden
                 style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor" }}
               />
-              {inv.role === "owner" ? "Owner" : "Member"}
+              {inv.role === "admin" ? "Admin" : "Member"}
             </span>
           </div>
           <div className="it-sent" style={{ fontSize: 12, color: "var(--ink-3)" }}>
