@@ -1,6 +1,12 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { acceptInviteForUser } from "@/lib/invites";
+
+// Short-lived, httpOnly flash cookie used to warn the user when clicking
+// an invite link in a browser that was already signed in as a different
+// account. Read by the protected layout once and then cleared.
+const SWITCH_FLASH_COOKIE = "flash_prev_user_email";
 
 // Auth-callback route handler.
 //
@@ -43,6 +49,13 @@ export async function GET(request: Request) {
 
   const supabase = await createClient();
 
+  // Capture the pre-verify session (if any) so we can detect an
+  // account-switch. Clicking an invite link in a browser that's already
+  // signed in as someone else will overwrite their session — we want to
+  // surface that rather than silently sign them out.
+  const { data: before } = await supabase.auth.getUser();
+  const previousEmail = before.user?.email?.toLowerCase() ?? null;
+
   if (tokenHash) {
     const { error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
@@ -66,6 +79,22 @@ export async function GET(request: Request) {
     const { data } = await supabase.auth.getUser();
     const user = data.user;
     if (!user) return "/login?error=session_missing";
+
+    const newEmail = user.email?.toLowerCase() ?? null;
+    if (previousEmail && newEmail && previousEmail !== newEmail) {
+      // Drop a flash cookie the protected layout will pick up on the next
+      // page render and turn into a banner. httpOnly because only the
+      // server reads it; 5-min TTL so it doesn't linger across real
+      // sign-outs.
+      const store = await cookies();
+      store.set(SWITCH_FLASH_COOKIE, previousEmail, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 60 * 5,
+      });
+    }
 
     // Invite token may travel via user_metadata (new users, set during
     // inviteUserByEmail) OR as a URL query param (existing users on

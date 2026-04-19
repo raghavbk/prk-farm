@@ -3,10 +3,11 @@ import { getActiveTenantId, isPlatformHostRequest } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { isCurrentUserPlatformAdmin } from "@/lib/platform";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Sidebar } from "@/components/ui/sidebar";
 import { TabBar } from "@/components/ui/tab-bar";
 import { MobileTopBar } from "@/components/ui/mobile-top-bar";
+import { SessionSwitchBanner } from "@/components/ui/session-switch-banner";
 
 export default async function ProtectedLayout({
   children,
@@ -75,6 +76,17 @@ export default async function ProtectedLayout({
   const totals = summaryRes.data?.[0] ?? { total_you_owe: 0, total_owed_to_you: 0 };
   const hasMultipleTenants = (myTenantCountRes.count ?? 0) > 1;
 
+  // Account-switch flash (set by /auth/callback when clicking an invite
+  // link replaced a previous session). Only show if the stored email
+  // actually differs from the current user — otherwise the cookie is
+  // stale (user signed back in as themselves within the TTL).
+  const cookieStore = await cookies();
+  const previousEmail = cookieStore.get("flash_prev_user_email")?.value ?? "";
+  const showSwitchBanner =
+    !!previousEmail &&
+    !!user.email &&
+    previousEmail.toLowerCase() !== user.email.toLowerCase();
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)", color: "var(--ink)" }}>
       <Sidebar
@@ -90,6 +102,9 @@ export default async function ProtectedLayout({
       />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <MobileTopBar tenantName={tenantName} />
+        {showSwitchBanner && user.email && (
+          <SessionSwitchBanner previousEmail={previousEmail} currentEmail={user.email} />
+        )}
         <main style={{ flex: 1, paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }} className="md:!pb-0">
           {children}
         </main>
