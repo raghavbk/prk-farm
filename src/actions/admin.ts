@@ -21,6 +21,50 @@ function makeInviteToken(): string {
   return randomBytes(32).toString("base64url");
 }
 
+// Hard-delete the Supabase auth user if nothing else references them:
+// no tenant memberships, no pending invites on their email, not a
+// platform admin. Called after removing the last membership or revoking
+// the last invite so orphan accounts don't linger in auth.users.
+//
+// Best-effort: if `auth.admin.deleteUser` fails (e.g., the profile is
+// still referenced by tenants/groups/expenses the user created — those
+// FKs are ON DELETE RESTRICT), we swallow the error. The user is
+// already sign-in-blocked because they have zero memberships; keeping
+// the auth row around for audit history is acceptable.
+async function deleteAuthUserIfOrphan(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<void> {
+  const { count: memberCount } = await admin
+    .from("tenant_members")
+    .select("tenant_id", { count: "exact", head: true })
+    .eq("user_id", userId);
+  if ((memberCount ?? 0) > 0) return;
+
+  const { data: platform } = await admin
+    .from("platform_admins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (platform) return;
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile?.email) {
+    const { count: inviteCount } = await admin
+      .from("tenant_invites")
+      .select("id", { count: "exact", head: true })
+      .ilike("email", profile.email)
+      .eq("status", "pending");
+    if ((inviteCount ?? 0) > 0) return;
+  }
+
+  await admin.auth.admin.deleteUser(userId);
+}
+
 // Shared: upsert a pending tenant_invites row and send the activation email.
 // Used by both the initial invite and the resend flow so the logic can't
 // drift. The caller is responsible for auth + admin-role checks.
@@ -331,12 +375,15 @@ export async function removeMember(memberId: string) {
     resourceId: memberId,
   });
 
+  await deleteAuthUserIfOrphan(admin, memberId);
+
   revalidatePath("/admin");
 }
 
 // Mark an invite as revoked. Soft-delete via status flip so the audit log
 // keeps its FK, and the partial unique index frees up the (tenant, email)
-// slot for a fresh invite.
+// slot for a fresh invite. If the revoked invite left behind an orphan
+// auth.users row (brand-new invitee who never accepted), clean that up too.
 export async function revokeInvite(inviteId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
@@ -367,6 +414,15 @@ export async function revokeInvite(inviteId: string) {
     resourceId: data.id,
     metadata: { email: data.email },
   });
+
+  const { data: orphanProfile } = await admin
+    .from("profiles")
+    .select("id")
+    .ilike("email", data.email)
+    .maybeSingle();
+  if (orphanProfile?.id) {
+    await deleteAuthUserIfOrphan(admin, orphanProfile.id);
+  }
 
   revalidatePath("/admin");
 }
