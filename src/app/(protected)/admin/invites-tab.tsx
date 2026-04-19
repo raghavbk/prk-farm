@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { revokeInvite } from "@/actions/admin";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { I } from "@/components/ui/icons";
 
 export type PendingInvite = {
@@ -139,39 +140,17 @@ function InviteRow({
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmRevoke, setConfirmRevoke] = useState(false);
   const [pending, startTransition] = useTransition();
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
-  // Close the popover on outside interaction + Escape.
-  // pointerdown fires before click, so clicking another ⋯ button closes
-  // this menu cleanly instead of flashing two open menus on top of each
-  // other.
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onPointer = (e: PointerEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-        setConfirmRevoke(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setMenuOpen(false);
-        setConfirmRevoke(false);
-      }
-    };
-    document.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [menuOpen]);
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setConfirmRevoke(false);
+  };
 
   const revoke = () => {
     startTransition(async () => {
       await revokeInvite(invite.userId);
-      setMenuOpen(false);
-      setConfirmRevoke(false);
+      closeMenu();
     });
   };
 
@@ -247,8 +226,9 @@ function InviteRow({
         {humanAgo(invite.invitedAt)}
       </div>
 
-      <div ref={wrapRef} style={{ position: "relative", justifySelf: "end" }}>
+      <div style={{ justifySelf: "end" }}>
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
           disabled={pending}
@@ -273,78 +253,56 @@ function InviteRow({
         >
           <I.dots size={16} />
         </button>
-        {menuOpen && (
-          <div
-            role="menu"
-            style={{
-              position: "absolute",
-              top: "calc(100% + 6px)",
-              right: 0,
-              minWidth: 220,
-              // Solid surface + subtle backdrop blur so row text never
-              // ghosts through the popover. var(--card) is theme-driven
-              // and opaque, but we force opacity:1 in case a parent is
-              // fading in via the .stagger animation.
-              background: "var(--card)",
-              opacity: 1,
-              backdropFilter: "blur(4px)",
-              border: "1px solid var(--rule)",
-              borderRadius: 12,
-              boxShadow: "var(--shadow-md)",
-              padding: 6,
-              zIndex: 50,
-            }}
-          >
-            {confirmRevoke ? (
-              <div style={{ padding: "6px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
-                <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                  Revoke invite for {invite.email}?
-                </span>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={revoke}
-                    disabled={pending}
-                    className="btn btn-danger"
-                    style={{ height: 30, padding: "0 10px", fontSize: 12 }}
-                  >
-                    {pending ? "Revoking…" : "Revoke"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmRevoke(false)}
-                    className="btn btn-ghost"
-                    style={{ height: 30, padding: "0 10px", fontSize: 12 }}
-                  >
-                    Cancel
-                  </button>
-                </div>
+        <ActionMenu open={menuOpen} onClose={closeMenu} anchorRef={triggerRef}>
+          {confirmRevoke ? (
+            <div style={{ padding: "6px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                Revoke invite for {invite.email}?
+              </span>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={revoke}
+                  disabled={pending}
+                  className="btn btn-danger"
+                  style={{ height: 30, padding: "0 10px", fontSize: 12 }}
+                >
+                  {pending ? "Revoking…" : "Revoke"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmRevoke(false)}
+                  className="btn btn-ghost"
+                  style={{ height: 30, padding: "0 10px", fontSize: 12 }}
+                >
+                  Cancel
+                </button>
               </div>
-            ) : (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => setConfirmRevoke(true)}
-                style={{
-                  display: "block",
-                  width: "100%",
-                  padding: "8px 10px",
-                  fontSize: 13,
-                  textAlign: "left",
-                  background: "transparent",
-                  border: "none",
-                  borderRadius: 8,
-                  color: "var(--neg)",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--neg-wash)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
-                Revoke invite
-              </button>
-            )}
-          </div>
-        )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => setConfirmRevoke(true)}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "8px 10px",
+                fontSize: 13,
+                textAlign: "left",
+                background: "transparent",
+                border: "none",
+                borderRadius: 8,
+                color: "var(--neg)",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--neg-wash)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              Revoke invite
+            </button>
+          )}
+        </ActionMenu>
       </div>
     </div>
   );

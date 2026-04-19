@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { removeMember, updateMemberRole } from "@/actions/admin";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { Avatar } from "@/components/ui/avatar";
 import { I } from "@/components/ui/icons";
 
@@ -114,31 +115,12 @@ function MemberRow({
   const hideMenu = isMe;
   const roleLabel = member.role === "admin" ? "Tenant admin" : "Member";
   const joined = humanJoined(member.joinedAt);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
-  // Close on outside click + Escape. pointerdown (not click) so clicking
-  // a sibling ⋯ button closes this menu before the other one opens.
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onPointer = (e: PointerEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-        setConfirmRemove(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setMenuOpen(false);
-        setConfirmRemove(false);
-      }
-    };
-    document.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [menuOpen]);
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setConfirmRemove(false);
+  };
 
   return (
     <div
@@ -217,9 +199,10 @@ function MemberRow({
         {joined}
       </div>
 
-      <div ref={wrapRef} style={{ position: "relative", justifySelf: "end" }}>
+      <div style={{ justifySelf: "end" }}>
         {!hideMenu && (
           <button
+            ref={triggerRef}
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
             title="More"
@@ -244,74 +227,52 @@ function MemberRow({
             <I.dots size={16} />
           </button>
         )}
-        {menuOpen && (
-          <div
-            role="menu"
-            style={{
-              position: "absolute",
-              top: "calc(100% + 6px)",
-              right: 0,
-              minWidth: 220,
-              // Force opacity:1 and blur so underlying row text never
-              // bleeds through the popover. var(--card) is opaque, but
-              // we guard against inherited animation opacity.
-              background: "var(--card)",
-              opacity: 1,
-              backdropFilter: "blur(4px)",
-              border: "1px solid var(--rule)",
-              borderRadius: 12,
-              boxShadow: "var(--shadow-md)",
-              padding: 6,
-              zIndex: 50,
+        <ActionMenu open={menuOpen} onClose={closeMenu} anchorRef={triggerRef}>
+          <MenuItem
+            label={member.role === "admin" ? "Demote to member" : "Promote to tenant admin"}
+            onClick={() => {
+              closeMenu();
+              updateMemberRole(
+                member.userId,
+                member.role === "admin" ? "member" : "admin",
+              );
             }}
-          >
-            <MenuItem
-              label={member.role === "admin" ? "Demote to member" : "Promote to tenant admin"}
-              onClick={() => {
-                setMenuOpen(false);
-                updateMemberRole(
-                  member.userId,
-                  member.role === "admin" ? "member" : "admin",
-                );
-              }}
-            />
-            {confirmRemove ? (
-              <div style={{ padding: "6px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
-                <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                  Remove {member.displayName.split(" ")[0]}?
-                </span>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      setConfirmRemove(false);
-                      removeMember(member.userId);
-                    }}
-                    className="btn btn-danger"
-                    style={{ height: 30, padding: "0 10px", fontSize: 12 }}
-                  >
-                    Remove
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmRemove(false)}
-                    className="btn btn-ghost"
-                    style={{ height: 30, padding: "0 10px", fontSize: 12 }}
-                  >
-                    Cancel
-                  </button>
-                </div>
+          />
+          {confirmRemove ? (
+            <div style={{ padding: "6px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                Remove {member.displayName.split(" ")[0]}?
+              </span>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMenu();
+                    removeMember(member.userId);
+                  }}
+                  className="btn btn-danger"
+                  style={{ height: 30, padding: "0 10px", fontSize: 12 }}
+                >
+                  Remove
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmRemove(false)}
+                  className="btn btn-ghost"
+                  style={{ height: 30, padding: "0 10px", fontSize: 12 }}
+                >
+                  Cancel
+                </button>
               </div>
-            ) : (
-              <MenuItem
-                label="Remove from tenant"
-                tone="danger"
-                onClick={() => setConfirmRemove(true)}
-              />
-            )}
-          </div>
-        )}
+            </div>
+          ) : (
+            <MenuItem
+              label="Remove from tenant"
+              tone="danger"
+              onClick={() => setConfirmRemove(true)}
+            />
+          )}
+        </ActionMenu>
       </div>
     </div>
   );
