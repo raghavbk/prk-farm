@@ -44,9 +44,19 @@ export default async function PlatformLayout({
             textDecoration: "none",
           }}
         >
-          <span className="eyebrow">Platform</span>
-          <span className="serif" style={{ fontSize: 18, letterSpacing: "-0.01em" }}>
-            Farm Share Ledger
+          <span
+            style={{
+              fontSize: 22,
+              fontWeight: 600,
+              letterSpacing: "-0.045em",
+              color: "var(--accent)",
+              lineHeight: 1,
+            }}
+          >
+            chukta
+          </span>
+          <span className="eyebrow" style={{ color: "var(--ink-3)" }}>
+            platform
           </span>
         </Link>
         <form action="/auth/signout" method="post">

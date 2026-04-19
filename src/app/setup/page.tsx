@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SetupForm } from "./setup-form";
-import { I } from "@/components/ui/icons";
 
 export default async function SetupPage() {
   const supabase = await createClient();
@@ -26,33 +25,15 @@ export default async function SetupPage() {
         <div style={{ marginBottom: 24 }}>
           <span
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "6px 12px 6px 8px",
-              borderRadius: 999,
-              background: "var(--accent-wash)",
+              display: "inline-block",
+              fontSize: "clamp(26px, 3vw, 32px)",
+              fontWeight: 600,
               color: "var(--accent)",
+              letterSpacing: "-0.045em",
+              lineHeight: 1,
             }}
           >
-            <span
-              aria-hidden
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: "50%",
-                background: "var(--accent)",
-                color: "var(--accent-ink)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <I.leaf size={12} />
-            </span>
-            <span className="eyebrow" style={{ color: "var(--accent)" }}>
-              Farm Share Ledger
-            </span>
+            chukta
           </span>
         </div>
 

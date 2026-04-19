@@ -22,8 +22,8 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Farm Share Ledger",
-  description: "A quieter place for the farm's money.",
+  title: "chukta — Settled. Done.",
+  description: "Split now, be chukta later. Hisaab khatam, dosti kayam.",
 };
 
 export const viewport: Viewport = {

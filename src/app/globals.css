@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 /* =======================================================
-   Farm Share Ledger — design tokens
-   Ported from design_handoff_farm_share_ledger/styles.css
+   chukta — design tokens
+
+   Settled green (#0F6E56) is the primary / "cleared" brand colour
+   and also the positive-balance ("money in") hue. Pending coral
+   (#F5C4B3) is the "you owe" accent. Paper / Ink / Mint round out
+   the neutral palette. Dark mode inverts paper ↔ ink.
    ======================================================= */
 
 :root {
@@ -10,66 +14,75 @@
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --font-serif: var(--font-instrument-serif), 'Times New Roman', serif;
 
-  /* Neutrals — LIGHT (default) */
-  --ink:        oklch(0.16 0.01 260);
-  --ink-2:      oklch(0.32 0.01 260);
-  --ink-3:      oklch(0.54 0.01 260);
-  --ink-4:      oklch(0.75 0.008 260);
-  --rule:       oklch(0.9 0.005 260);
-  --rule-2:     oklch(0.94 0.004 260);
-  --bg:         oklch(0.985 0.003 260);
-  --card:       oklch(1 0 0);
-  --surface-2:  oklch(0.97 0.004 260);
+  /* Neutrals — LIGHT (Paper + Ink) */
+  --ink:        #2C2C2A;                 /* ink */
+  --ink-2:      oklch(0.45 0.004 95);
+  --ink-3:      oklch(0.62 0.004 95);
+  --ink-4:      oklch(0.78 0.005 90);
+  --rule:       oklch(0.88 0.007 90);
+  --rule-2:     oklch(0.92 0.006 90);
+  --bg:         #F1EFE8;                 /* paper */
+  --card:       #FFFFFF;                 /* base */
+  --surface-2:  oklch(0.92 0.008 90);
 
-  /* Accent (default Cobalt — swap the hue to theme) */
-  --accent:      oklch(0.5 0.15 255);
-  --accent-2:    oklch(0.58 0.16 255);
-  --accent-ink:  oklch(0.98 0.01 255);
-  --accent-wash: oklch(0.96 0.025 255);
+  /* Chukta brand accent = settled green (primary / "cleared") */
+  --accent:      #0F6E56;
+  --accent-2:    oklch(0.50 0.095 163);
+  --accent-ink:  #FFFFFF;
+  --accent-wash: #E1F5EE;                /* mint */
 
-  --pos:       oklch(0.58 0.14 155);
-  --pos-wash:  oklch(0.96 0.025 155);
-  --neg:       oklch(0.58 0.15 28);
-  --neg-wash:  oklch(0.97 0.025 28);
+  /* Positive = cleared = settled green; same hue as the accent. */
+  --pos:       #0F6E56;
+  --pos-wash:  #E1F5EE;                  /* mint */
 
-  --shadow-sm: 0 1px 2px oklch(0.16 0.01 260 / 0.04), 0 1px 0 oklch(0.16 0.01 260 / 0.02);
-  --shadow-md: 0 2px 4px oklch(0.16 0.01 260 / 0.04), 0 8px 24px oklch(0.16 0.01 260 / 0.06);
-  --shadow-lg: 0 8px 32px oklch(0.16 0.01 260 / 0.1);
+  /* Negative = pending coral. Wash is the exact #F5C4B3; the text
+     colour is a deeper coral for legibility on paper. */
+  --neg:       #C05A36;
+  --neg-wash:  #F5C4B3;
 
-  --page-bg: oklch(0.97 0.003 90);
+  --shadow-sm: 0 1px 2px oklch(0.20 0.01 95 / 0.05), 0 1px 0 oklch(0.20 0.01 95 / 0.03);
+  --shadow-md: 0 2px 4px oklch(0.20 0.01 95 / 0.05), 0 8px 24px oklch(0.20 0.01 95 / 0.07);
+  --shadow-lg: 0 8px 32px oklch(0.20 0.01 95 / 0.1);
+
+  --page-bg: #F1EFE8;
 }
 
 :root[data-theme="dark"] {
-  --ink:       oklch(0.97 0.005 260);
-  --ink-2:     oklch(0.82 0.008 260);
-  --ink-3:     oklch(0.62 0.01 260);
-  --ink-4:     oklch(0.42 0.012 260);
-  --rule:      oklch(0.26 0.008 260);
-  --rule-2:    oklch(0.22 0.006 260);
-  --bg:        oklch(0.15 0.008 260);
-  --card:      oklch(0.19 0.01 260);
-  --surface-2: oklch(0.22 0.01 260);
+  --ink:       #F1EFE8;                  /* paper */
+  --ink-2:     oklch(0.84 0.008 90);
+  --ink-3:     oklch(0.66 0.008 90);
+  --ink-4:     oklch(0.48 0.008 90);
+  --rule:      oklch(0.30 0.006 90);
+  --rule-2:    oklch(0.24 0.004 90);
+  --bg:        #1B1B1A;                  /* deeper than ink for true page bg */
+  --card:      #262624;
+  --surface-2: #2F2F2C;
 
-  --accent-ink:  oklch(0.99 0.005 255);
-  --accent-wash: oklch(0.28 0.06 255);
+  /* Brighten the green so it pops on dark; coral can stay as-is. */
+  --accent:      #2FB07D;
+  --accent-2:    oklch(0.75 0.12 163);
+  --accent-ink:  #0B1F1A;
+  --accent-wash: oklch(0.30 0.05 163);
 
-  --pos:      oklch(0.72 0.14 155);
-  --pos-wash: oklch(0.28 0.05 155);
-  --neg:      oklch(0.72 0.15 28);
-  --neg-wash: oklch(0.28 0.06 28);
+  --pos:      #2FB07D;
+  --pos-wash: oklch(0.30 0.05 163);
+  --neg:      #F5C4B3;
+  --neg-wash: oklch(0.32 0.045 40);
 
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4), 0 1px 0 oklch(0 0 0 / 0.3);
   --shadow-md: 0 2px 4px oklch(0 0 0 / 0.4), 0 8px 24px oklch(0 0 0 / 0.5);
   --shadow-lg: 0 8px 32px oklch(0 0 0 / 0.6);
 
-  --page-bg: oklch(0.1 0.008 260);
+  --page-bg: #141413;
 }
 
-/* Accent theme variants — apply to <html data-accent="..."> */
-:root[data-accent="forest"] { --accent: oklch(0.45 0.12 155); --accent-2: oklch(0.55 0.13 155); --accent-wash: oklch(0.96 0.025 155); }
-:root[data-accent="ink"]    { --accent: oklch(0.28 0.02 260); --accent-2: oklch(0.38 0.02 260); --accent-wash: oklch(0.95 0.005 260); }
-:root[data-accent="terra"]  { --accent: oklch(0.55 0.14 50);  --accent-2: oklch(0.63 0.15 50);  --accent-wash: oklch(0.96 0.025 50); }
-:root[data-accent="rose"]   { --accent: oklch(0.55 0.15 10);  --accent-2: oklch(0.63 0.16 10);  --accent-wash: oklch(0.96 0.025 10); }
+/* Legacy accent variants are kept for any URLs that set data-accent explicitly
+   (old bookmarks, screenshots). They all re-skin around the settled-green
+   default — the canonical chukta accent lives under no data-accent attribute. */
+:root[data-accent="forest"] { --accent: #0F6E56; --accent-2: oklch(0.50 0.095 163); --accent-wash: #E1F5EE; }
+:root[data-accent="ink"]    { --accent: #2C2C2A; --accent-2: oklch(0.38 0.004 95); --accent-wash: oklch(0.92 0.008 90); }
+:root[data-accent="terra"]  { --accent: #C05A36; --accent-2: oklch(0.60 0.12 40); --accent-wash: #F5C4B3; }
+:root[data-accent="rose"]   { --accent: oklch(0.55 0.15 10);  --accent-2: oklch(0.63 0.16 10); --accent-wash: oklch(0.96 0.025 10); }
 
 /* ================================================================
    Tailwind v4 theme bridge — maps utility classes to our tokens.

@@ -34,37 +34,19 @@ export default async function LoginPage() {
           margin: "0 auto",
         }}
       >
-        {/* Brand pill */}
+        {/* chukta wordmark */}
         <div style={{ paddingTop: "clamp(12px, 4vw, 40px)" }}>
           <span
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "6px 12px 6px 8px",
-              borderRadius: 999,
-              background: "var(--accent-wash)",
+              display: "inline-block",
+              fontSize: "clamp(28px, 3vw, 34px)",
+              fontWeight: 600,
               color: "var(--accent)",
+              letterSpacing: "-0.045em",
+              lineHeight: 1,
             }}
           >
-            <span
-              aria-hidden
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: "50%",
-                background: "var(--accent)",
-                color: "var(--accent-ink)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <I.leaf size={12} />
-            </span>
-            <span className="eyebrow" style={{ color: "var(--accent)" }}>
-              Farm Share Ledger
-            </span>
+            chukta
           </span>
         </div>
 
@@ -79,9 +61,9 @@ export default async function LoginPage() {
               color: "var(--ink)",
             }}
           >
-            The ledger,
+            Settled. Done.
             <br />
-            <em style={{ color: "var(--accent)" }}>settled.</em>
+            <em style={{ color: "var(--accent)" }}>Chukta.</em>
           </h1>
           <p
             style={{
@@ -92,7 +74,7 @@ export default async function LoginPage() {
               maxWidth: 420,
             }}
           >
-            A quiet, auditable record of what you all paid for the farm —
+            Split now, be chukta later. A quiet, auditable ledger of what you all paid —
             split fairly by the ownership you already agreed on.
           </p>
 
@@ -115,7 +97,7 @@ export default async function LoginPage() {
             <span>Auditable splits</span>
           </div>
           <p style={{ marginTop: 20, fontSize: 13, color: "var(--ink-3)" }}>
-            Invite only — ask your farm admin for access.
+            Invite only — ask your platform admin for access.
           </p>
         </div>
 
@@ -155,7 +137,7 @@ export default async function LoginPage() {
         />
         <div style={{ position: "relative", maxWidth: 420, marginTop: 32 }}>
           <div className="eyebrow" style={{ color: "var(--accent-ink)", opacity: 0.7, marginBottom: 24 }}>
-            Built for co-owned farms
+            Hisaab khatam. Dosti kayam.
           </div>
           <h2
             className="serif"
@@ -166,7 +148,7 @@ export default async function LoginPage() {
               margin: "0 0 28px",
             }}
           >
-            A quieter place for the farm&rsquo;s money.
+            From confused to <em>chukta</em>.
           </h2>
           <ul
             style={{
