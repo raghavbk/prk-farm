@@ -1,10 +1,12 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveTenantId } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { ViewTransition } from "react";
-import { InviteMemberForm } from "./invite-member-form";
-import { MemberList } from "./member-list";
+import { AdminShell } from "./admin-shell";
+import type { AdminMember } from "./members-tab";
+import type { PendingInvite } from "./invites-tab";
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -15,7 +17,6 @@ export default async function AdminPage() {
 
   const supabase = await createClient();
 
-  // Verify tenant owner
   const { data: membership } = await supabase
     .from("tenant_members")
     .select("role")
@@ -25,47 +26,66 @@ export default async function AdminPage() {
 
   if (membership?.role !== "owner") redirect("/");
 
-  // Get tenant info
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("*")
-    .eq("id", tenantId)
-    .single();
+  const [tenantRes, membersRes] = await Promise.all([
+    supabase.from("tenants").select("*").eq("id", tenantId).single(),
+    supabase
+      .from("tenant_members")
+      .select("user_id, role, joined_at, profiles(display_name, email)")
+      .eq("tenant_id", tenantId)
+      .order("joined_at", { ascending: true }),
+  ]);
 
-  // Get all members
-  const { data: members } = await supabase
-    .from("tenant_members")
-    .select("user_id, role, joined_at, profiles(display_name, email, avatar_url)")
-    .eq("tenant_id", tenantId)
-    .order("joined_at", { ascending: true });
+  type MemberRow = {
+    user_id: string;
+    role: string;
+    joined_at: string;
+    profiles: { display_name: string; email: string } | null;
+  };
+  const rows = (membersRes.data ?? []) as unknown as MemberRow[];
+  const memberUserIds = rows.map((r) => r.user_id);
 
-  const memberList = (members ?? []).map((m) => ({
-    userId: m.user_id,
-    role: m.role as "owner" | "member",
-    joinedAt: m.joined_at,
-    displayName: (m.profiles as unknown as { display_name: string })?.display_name ?? "Unknown",
-    email: (m.profiles as unknown as { email: string })?.email ?? "",
-    avatarUrl: (m.profiles as unknown as { avatar_url: string | null })?.avatar_url ?? null,
-  }));
+  // A pending invite = a tenant_members row whose Supabase Auth user has not
+  // confirmed their email yet. Probe auth.users via the service-role admin
+  // client and classify by email_confirmed_at.
+  const pendingUserIds = new Set<string>();
+  if (memberUserIds.length > 0) {
+    try {
+      const admin = createAdminClient();
+      // admin.listUsers returns up to perPage; a tenant will be small so 1000 is plenty.
+      const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      for (const u of list?.users ?? []) {
+        if (memberUserIds.includes(u.id) && !u.email_confirmed_at) {
+          pendingUserIds.add(u.id);
+        }
+      }
+    } catch {
+      // Admin API unavailable (missing service role key) — treat everyone as confirmed.
+    }
+  }
 
-  // Get group count
-  const { count: groupCount } = await supabase
-    .from("groups")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", tenantId);
-
-  // Get expense count
-  const groupIds = (
-    await supabase.from("groups").select("id").eq("tenant_id", tenantId)
-  ).data?.map((g) => g.id) ?? [];
-
-  let expenseCount = 0;
-  if (groupIds.length > 0) {
-    const { count } = await supabase
-      .from("expenses")
-      .select("id", { count: "exact", head: true })
-      .in("group_id", groupIds);
-    expenseCount = count ?? 0;
+  const members: AdminMember[] = [];
+  const pendingInvites: PendingInvite[] = [];
+  for (const r of rows) {
+    const displayName = r.profiles?.display_name ?? "Unknown";
+    const email = r.profiles?.email ?? "";
+    const role = (r.role === "owner" ? "owner" : "member") as "owner" | "member";
+    if (pendingUserIds.has(r.user_id)) {
+      pendingInvites.push({
+        userId: r.user_id,
+        email,
+        displayName,
+        role,
+        invitedAt: r.joined_at,
+      });
+    } else {
+      members.push({
+        userId: r.user_id,
+        role,
+        joinedAt: r.joined_at,
+        displayName,
+        email,
+      });
+    }
   }
 
   return (
@@ -74,111 +94,27 @@ export default async function AdminPage() {
       exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
       default="none"
     >
-    <main
-      className="mx-auto"
-      style={{ maxWidth: 1120, padding: "clamp(20px, 3vw, 32px) clamp(20px, 4vw, 40px) 56px", width: "100%" }}
-    >
-      {/* Header */}
-      <div className="eyebrow" style={{ marginBottom: 8 }}>
-        Tenant administration
-      </div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: 16,
-          flexWrap: "wrap",
-          marginBottom: 10,
-        }}
-      >
-        <h1
-          className="serif"
+      <div style={{ viewTransitionName: "screen" }}>
+        <main
+          className="mx-auto"
           style={{
-            fontSize: "clamp(28px, 5vw, 44px)",
-            margin: 0,
-            letterSpacing: "-0.02em",
-            lineHeight: 1.15,
-            color: "var(--ink)",
+            maxWidth: 1040,
+            padding: "clamp(20px, 3vw, 28px) clamp(20px, 4vw, 44px) 56px",
+            width: "100%",
           }}
         >
-          Who belongs to <em>{tenant?.name}</em>.
-        </h1>
+          <AdminShell
+            tenantName={tenant(tenantRes.data?.name)}
+            members={members}
+            pendingInvites={pendingInvites}
+            currentUserId={user.id}
+          />
+        </main>
       </div>
-      <p
-        style={{
-          fontSize: 14,
-          color: "var(--ink-3)",
-          margin: "0 0 28px",
-          maxWidth: 560,
-        }}
-      >
-        Only Owners and Admins can manage who has access. Invites expire after 7 days.
-      </p>
-
-      {/* Stats */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: 12,
-          marginBottom: 28,
-        }}
-      >
-        <StatCard label="Members" value={memberList.length} />
-        <StatCard label="Groups" value={groupCount ?? 0} />
-        <StatCard label="Expenses" value={expenseCount} />
-      </div>
-
-      {/* Invite */}
-      <div className="eyebrow" style={{ marginBottom: 10 }}>
-        Invite people
-      </div>
-      <div className="card" style={{ padding: 20, marginBottom: 28 }}>
-        <InviteMemberForm />
-      </div>
-
-      {/* Members */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          marginBottom: 10,
-          gap: 10,
-        }}
-      >
-        <h2 className="serif" style={{ fontSize: 22, margin: 0, letterSpacing: "-0.015em" }}>
-          Members
-        </h2>
-        <span className="eyebrow" style={{ color: "var(--ink-4)" }}>
-          {memberList.length} {memberList.length === 1 ? "person" : "people"}
-        </span>
-      </div>
-      <MemberList members={memberList} currentUserId={user.id} />
-    </main>
     </ViewTransition>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: "16px 18px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-      }}
-    >
-      <div className="eyebrow">{label}</div>
-      <div
-        className="serif"
-        style={{ fontSize: 28, lineHeight: 1, letterSpacing: "-0.01em", color: "var(--ink)" }}
-      >
-        {value}
-      </div>
-    </div>
-  );
+function tenant(name: string | undefined | null): string {
+  return name?.trim() ? name : "this tenant";
 }
