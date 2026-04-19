@@ -19,14 +19,15 @@ export default async function ProtectedLayout({
   }
 
   // chukta.in (or whatever PLATFORM_HOSTS is set to) is the platform console.
-  // Non-admins have no business on the apex, and admins should be routed
-  // straight to /platform — not to a tenant picker that wouldn't make sense
-  // here.
+  // Admins go straight to /platform. Non-admins used to be redirected to
+  // /login, but the login page itself redirects already-signed-in users back
+  // to / — the two redirects fought each other into an infinite loop. Render
+  // an inline "wrong door" page instead so nothing redirects.
   if (await isPlatformHostRequest()) {
     if (await isCurrentUserPlatformAdmin()) {
       redirect("/platform");
     }
-    redirect("/login?reason=wrong-host");
+    return <WrongHostNotice />;
   }
 
   const supabase = await createClient();
@@ -88,6 +89,44 @@ export default async function ProtectedLayout({
         </main>
       </div>
       <TabBar />
+    </div>
+  );
+}
+
+function WrongHostNotice() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "clamp(24px, 4vw, 48px)",
+        background: "var(--bg)",
+        color: "var(--ink)",
+      }}
+    >
+      <div className="mesh" style={{ position: "fixed", inset: 0, pointerEvents: "none", opacity: 0.5 }} />
+      <div style={{ position: "relative", maxWidth: 460, textAlign: "center" }}>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>
+          Wrong door
+        </div>
+        <h1
+          className="serif"
+          style={{ fontSize: "clamp(28px, 5vw, 40px)", margin: 0, letterSpacing: "-0.02em", lineHeight: 1.15 }}
+        >
+          This host is the <em>platform console</em>.
+        </h1>
+        <p style={{ fontSize: 14, color: "var(--ink-3)", margin: "14px auto 24px", maxWidth: 380, lineHeight: 1.55 }}>
+          You&rsquo;re signed in, but this account isn&rsquo;t a platform admin for this app.
+          Go to your tenant&rsquo;s URL, or sign out to try a different account.
+        </p>
+        <form action="/auth/signout" method="post">
+          <button type="submit" className="btn btn-ghost">
+            Sign out
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

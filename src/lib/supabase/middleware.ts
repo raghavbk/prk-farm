@@ -10,13 +10,13 @@ export async function updateSession(request: NextRequest) {
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
 
   // Host-based tenant resolution. The domain IS the tenant context on
-  // customer hosts. Platform apex (chukta.in) is the operator console — it
-  // never resolves to a tenant; we set x-platform-host so downstream code can
-  // force a different landing page.
+  // customer hosts. Platform apex (chukta.in) is the operator console.
+  // Priority: tenant mapping wins. That way localhost can simultaneously be
+  // in PLATFORM_HOSTS (for platform-console dev) AND be registered in
+  // tenant_domains (for tenant dev against PRK) — whichever wins depends on
+  // the data, not a hardcoded list.
   const host = normalizeHost(request.headers.get("host"));
   if (host) requestHeaders.set("x-host", host);
-  const onPlatformHost = isPlatformHost(host);
-  if (onPlatformHost) requestHeaders.set("x-platform-host", "1");
 
   let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
 
@@ -47,15 +47,21 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Resolve host → tenant BEFORE the auth gate so onboarding / callback
-  // routes on customer hosts land under the right tenant context. Skip the
-  // RPC when we already know this is the platform apex — that host never has
-  // a tenant mapping (and shouldn't, because chukta.in is the operator
-  // console, not a tenant).
-  if (host && !onPlatformHost) {
+  // routes on customer hosts land under the right tenant context.
+  let resolvedTenant: string | null = null;
+  if (host) {
     const { data: tenantId } = await supabase.rpc("resolve_tenant_by_domain", {
       p_domain: host,
     });
-    if (tenantId) requestHeaders.set("x-tenant-id", tenantId as string);
+    resolvedTenant = (tenantId as string | null) ?? null;
+    if (resolvedTenant) requestHeaders.set("x-tenant-id", resolvedTenant);
+  }
+
+  // Only flag the request as "platform apex" when the host matches
+  // PLATFORM_HOSTS *and* doesn't belong to a tenant. Prevents tenant dev on
+  // localhost from getting trapped on the platform console.
+  if (host && !resolvedTenant && isPlatformHost(host)) {
+    requestHeaders.set("x-platform-host", "1");
   }
 
   const publicPaths = ["/login", "/setup", "/auth/callback", "/auth/set-password", "/auth/signout", "/preview"];

@@ -12,9 +12,10 @@ export default async function PlatformLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  // Only serve the operator console on the platform apex. A platform admin
-  // landing on a tenant host (e.g. prk.chukta.in/platform) goes to the tenant
-  // dashboard instead — they can still reach the console via chukta.in.
+  // The operator console only serves on the platform apex. A platform admin
+  // landing on /platform from a tenant host (e.g. expense.vibenaturals.in)
+  // goes to the tenant dashboard instead — they can still reach the console
+  // by navigating to chukta.in.
   if (!(await isPlatformHostRequest())) redirect("/");
 
   const isPlatform = await isCurrentUserPlatformAdmin();
