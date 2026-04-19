@@ -27,16 +27,14 @@ export async function login(
     return { error: error.message };
   }
 
-  // Backfill the password_set flag for accounts that predate it. Once set,
-  // future invite-link clicks correctly skip /auth/set-password.
+  // Backfill password_set so future invite-link clicks skip /auth/set-password
+  // for this account. updateUser merges at the top level, so no spread.
   const meta = (data.user?.user_metadata ?? {}) as { password_set?: boolean };
   if (data.user && meta.password_set !== true) {
-    await supabase.auth.updateUser({ data: { ...meta, password_set: true } });
+    await supabase.auth.updateUser({ data: { password_set: true } });
   }
 
   revalidatePath("/");
-  // /auth/resume decides where to send the user based on their memberships
-  // and platform-admin status.
   redirect("/auth/resume");
 }
 
@@ -56,9 +54,8 @@ export async function setPassword(
 
   const supabase = await createClient();
 
-  // Mark the account as "password set" and drop the invite_token (it served
-  // its purpose — carrying the first-invite acceptance — so we don't want it
-  // hanging around and re-triggering accept logic on future callback hits).
+  // Drop invite_token after use so it can't re-trigger accept logic on a
+  // future callback hit.
   const { data: userRes } = await supabase.auth.getUser();
   const existing = (userRes.user?.user_metadata ?? {}) as Record<string, unknown>;
   const nextMeta = { ...existing, password_set: true };
@@ -71,8 +68,5 @@ export async function setPassword(
   }
 
   revalidatePath("/");
-  // Invite acceptance already happened in /auth/callback, so at this point
-  // the user is a full member of their tenant. /auth/resume handles the
-  // single-vs-multi-tenant routing and lands them on the right host.
   redirect("/auth/resume");
 }

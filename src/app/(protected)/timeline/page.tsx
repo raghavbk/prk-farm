@@ -1,7 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getActiveTenantId } from "@/lib/tenant";
+import { requireUserAndTenant } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ViewTransition } from "react";
 import { Avatar } from "@/components/ui/avatar";
@@ -19,10 +17,7 @@ type ExpenseRow = {
 };
 
 export default async function TimelinePage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  const tenantId = await getActiveTenantId();
-  if (!tenantId) redirect("/tenants");
+  const { tenantId } = await requireUserAndTenant();
 
   const supabase = await createClient();
 

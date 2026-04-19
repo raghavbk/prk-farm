@@ -61,3 +61,19 @@ export function firstName(name: string | null | undefined): string {
   if (!name) return "there";
   return name.trim().split(/\s+/)[0];
 }
+
+// "just now" / "5m ago" / "3h ago" / "6d ago" / "12 Mar 2026".
+// Admin area (members-tab, invites-tab) uses its own variants with
+// yesterday/weeks/months buckets.
+export function formatUpdatedAt(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diff = Date.now() - then;
+  const m = Math.round(diff / 60_000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.round(h / 24);
+  if (d < 14) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}

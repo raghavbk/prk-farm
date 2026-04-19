@@ -9,13 +9,10 @@ export default async function SetPasswordPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Must have a session (from the invite link).
   if (!user) redirect("/login");
 
-  // Already onboarded — skip the form. Prevents an existing user from being
-  // dumped back here when they click a fresh invite to a new tenant, and
-  // guards against a direct visit to /auth/set-password by someone who's
-  // already logged in.
+  // Skip the form for anyone already onboarded (no invite_token on metadata)
+  // or who has set a password before.
   const meta = (user.user_metadata ?? {}) as { password_set?: boolean; invite_token?: string };
   if (meta.password_set === true || meta.invite_token === undefined) {
     redirect("/auth/resume");

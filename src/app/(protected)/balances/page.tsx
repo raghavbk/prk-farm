@@ -1,7 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getActiveTenantId } from "@/lib/tenant";
+import { requireUserAndTenant } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { ViewTransition } from "react";
 import { BalancesView, type Settlement, type LedgerRow, type RibbonMember } from "./balances-view";
 
@@ -28,10 +26,7 @@ function simplifyNet(net: Map<string, number>): { from: string; to: string; amou
 }
 
 export default async function BalancesPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  const tenantId = await getActiveTenantId();
-  if (!tenantId) redirect("/tenants");
+  const { user, tenantId } = await requireUserAndTenant();
 
   const supabase = await createClient();
   const [tenantRes, groupsRes] = await Promise.all([

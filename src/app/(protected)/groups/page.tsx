@@ -1,32 +1,15 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getActiveTenantId } from "@/lib/tenant";
+import { requireUserAndTenant } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ViewTransition } from "react";
 import { GroupCard, type GroupCardMember } from "@/components/ui/group-card";
 import { I } from "@/components/ui/icons";
+import { formatUpdatedAt } from "@/lib/format";
 
 type BalanceRow = { group_id: string; creditor_id: string; debtor_id: string; net_amount: number };
 
-function humanUpdated(iso: string): string {
-  const then = new Date(iso).getTime();
-  const diff = Date.now() - then;
-  const m = Math.round(diff / 60_000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.round(h / 24);
-  if (d < 14) return `${d}d ago`;
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
-
 export default async function GroupsPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  const tenantId = await getActiveTenantId();
-  if (!tenantId) redirect("/tenants");
+  const { user, tenantId } = await requireUserAndTenant();
 
   const supabase = await createClient();
 
@@ -182,7 +165,7 @@ export default async function GroupsPage() {
                     expenseCount={summary.count}
                     totalInr={summary.total}
                     myBalance={myBal ?? null}
-                    updatedLabel={humanUpdated(g.updated_at)}
+                    updatedLabel={formatUpdatedAt(g.updated_at)}
                     idx={i}
                   />
                 );

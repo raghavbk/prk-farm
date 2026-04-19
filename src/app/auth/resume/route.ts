@@ -1,14 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isPlatformHost } from "@/lib/platform-hosts";
+import { isPlatformHost, schemeFor } from "@/lib/platform-hosts";
 
-// Central "where to send the user after login / on a stale cookie" decision.
-//
-// Subtle: redirects for tenant users must cross over to the tenant's primary
-// host. If we just redirect to "/" on the current host and the current host
-// is the platform apex (chukta.in), the protected layout slaps them with
-// "Wrong door" because non-platform-admins aren't allowed on the apex.
+// Tenant users must cross-origin back to their tenant host: the protected
+// layout rejects non-platform-admins on the apex with "Wrong door".
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const {
@@ -42,10 +38,7 @@ export async function GET(request: NextRequest) {
   const tenantIds = (memberships ?? []).map((m) => m.tenant_id as string);
 
   if (tenantIds.length === 0) {
-    // No membership + not a platform admin = nowhere to go. Kick them back
-    // to sign-out so the session doesn't get stuck in a redirect loop
-    // (the protected layout would otherwise /auth/resume → nothing here
-    //  → …). signout clears the cookie and lands on /login.
+    // Nothing to land on — sign out so the session doesn't loop through here.
     base.pathname = "/auth/signout";
     return NextResponse.redirect(base);
   }
@@ -75,13 +68,9 @@ export async function GET(request: NextRequest) {
     if (primary) {
       target = `${schemeFor(primary)}://${primary}/`;
     } else if (!isPlatformHost(request.headers.get("host"))) {
-      // Current host is a tenant host — safe to land on its root.
       target = `${base.origin}/`;
     } else {
-      // No primary domain and we're on the platform apex. Falling back to
-      // `${base.origin}/` would trigger the protected layout's "Wrong door"
-      // notice. Route to the picker instead; its layout is minimal and shows
-      // the single tenant as a button.
+      // On platform apex with no primary domain — picker avoids "Wrong door".
       base.pathname = "/tenants";
       target = base.toString();
     }
@@ -90,23 +79,14 @@ export async function GET(request: NextRequest) {
     return res;
   }
 
-  // Multi-tenant: go to /tenants picker. Pick the first membership's
-  // primary domain as the host so the picker renders under a real tenant
-  // host (not the platform apex, which would Wrong-door them).
+  // Pick any tenant's primary host to render the picker on — avoids landing
+  // on the apex where non-admins get "Wrong door".
   const firstPrimary = tenantIds
     .map((id) => primaryByTenant.get(id))
     .find((d): d is string => !!d);
   if (firstPrimary) {
-    return NextResponse.redirect(
-      `${schemeFor(firstPrimary)}://${firstPrimary}/tenants`,
-    );
+    return NextResponse.redirect(`${schemeFor(firstPrimary)}://${firstPrimary}/tenants`);
   }
-  // No primary domain on any tenant (shouldn't happen with the onboard flow,
-  // but degrade gracefully to the current origin's /tenants).
   base.pathname = "/tenants";
   return NextResponse.redirect(base);
-}
-
-function schemeFor(host: string): "http" | "https" {
-  return host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https";
 }

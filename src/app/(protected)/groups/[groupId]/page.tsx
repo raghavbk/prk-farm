@@ -1,14 +1,13 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getActiveTenantId } from "@/lib/tenant";
+import { requireUserAndTenant } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { canManageTenant } from "@/lib/platform";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ViewTransition } from "react";
 import { OwnershipPie } from "@/components/ui/ownership-pie";
 import { GroupDetailTabs, type TabMember, type TabExpense, type TabTransfer } from "@/components/ui/group-detail-tabs";
 import { I } from "@/components/ui/icons";
-import { formatInr, formatInrSigned } from "@/lib/format";
+import { formatInr, formatInrSigned, formatUpdatedAt } from "@/lib/format";
 
 type BalanceRow = { group_id: string; creditor_id: string; debtor_id: string; net_amount: number };
 
@@ -38,25 +37,10 @@ function simplifyTransfers(balances: BalanceRow[]): TabTransfer[] {
   return out;
 }
 
-function humanUpdated(iso: string): string {
-  const then = new Date(iso).getTime();
-  const diff = Date.now() - then;
-  const m = Math.round(diff / 60_000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.round(h / 24);
-  if (d < 14) return `${d}d ago`;
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
 
 export default async function GroupDetailPage({ params }: { params: Promise<{ groupId: string }> }) {
   const { groupId } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  const tenantId = await getActiveTenantId();
-  if (!tenantId) redirect("/tenants");
+  const { user, tenantId } = await requireUserAndTenant();
 
   const supabase = await createClient();
 
@@ -129,7 +113,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
   const transfers = simplifyTransfers(balances);
   const total = expenses.reduce((a, e) => a + e.amount, 0);
   const myBal = netById.get(user.id) ?? 0;
-  const updatedLabel = humanUpdated(group.updated_at);
+  const updatedLabel = formatUpdatedAt(group.updated_at);
 
   return (
     <ViewTransition

@@ -37,8 +37,14 @@ export function isPlatformHost(host: string | null | undefined): boolean {
 // (<slug>.<apex>). Picks the first non-local host from PLATFORM_HOSTS so local
 // dev doesn't produce slugs like `acme.localhost`.
 export function getPlatformApex(): string {
-  const first = PLATFORM_HOSTS.find(
-    (h) => !h.startsWith("localhost") && !h.startsWith("127."),
-  );
+  const first = PLATFORM_HOSTS.find((h) => !isLocalHost(h));
   return first ?? PLATFORM_HOSTS[0] ?? "chukta.in";
+}
+
+function isLocalHost(host: string): boolean {
+  return host.startsWith("localhost") || host.startsWith("127.");
+}
+
+export function schemeFor(host: string): "http" | "https" {
+  return isLocalHost(host) ? "http" : "https";
 }

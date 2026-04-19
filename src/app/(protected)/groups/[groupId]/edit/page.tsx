@@ -1,5 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getActiveTenantId } from "@/lib/tenant";
+import { requireUserAndTenant } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { ViewTransition } from "react";
@@ -11,11 +10,7 @@ export default async function EditGroupPage({
   params: Promise<{ groupId: string }>;
 }) {
   const { groupId } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-
-  const tenantId = await getActiveTenantId();
-  if (!tenantId) redirect("/tenants");
+  const { user, tenantId } = await requireUserAndTenant();
 
   const supabase = await createClient();
 

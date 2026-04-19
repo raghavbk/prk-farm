@@ -7,6 +7,7 @@ import { ViewTransition } from "react";
 import { AdminShell } from "./admin-shell";
 import type { AdminMember } from "./members-tab";
 import type { PendingInvite } from "./invites-tab";
+import type { InviteStatus } from "@/lib/invites";
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -27,9 +28,7 @@ export default async function AdminPage() {
       .select("user_id, role, joined_at, profiles(display_name, email)")
       .eq("tenant_id", tenantId)
       .order("joined_at", { ascending: true }),
-    // Open invites = anything the admin can still act on. We intentionally
-    // include expired rows so admins can resend them; `accepted` and
-    // `revoked` are terminal and stay hidden.
+    // Include expired rows so admins can resend them.
     supabase
       .from("tenant_invites")
       .select("id, email, role, invited_by, created_at, expires_at, status")
@@ -54,25 +53,8 @@ export default async function AdminPage() {
     email: r.profiles?.email ?? "",
   }));
 
-  type InviteRow = {
-    id: string;
-    email: string;
-    role: string;
-    invited_by: string | null;
-    created_at: string;
-    expires_at: string;
-    status: "pending" | "expired" | "accepted" | "revoked";
-  };
-  const inviteRows = (invitesRes.data ?? []) as unknown as InviteRow[];
-  const pendingInvites: PendingInvite[] = inviteRows.map((i) => ({
-    inviteId: i.id,
-    email: i.email,
-    displayName: i.email.split("@")[0],
-    role: (i.role === "admin" ? "admin" : "member") as "admin" | "member",
-    invitedAt: i.created_at,
-    expiresAt: i.expires_at,
-    statusExpired: i.status === "expired",
-  }));
+  const inviteRows = (invitesRes.data ?? []) as unknown as AdminInviteRow[];
+  const pendingInvites: PendingInvite[] = inviteRows.map(toPendingInvite);
 
   return (
     <ViewTransition
@@ -103,4 +85,26 @@ export default async function AdminPage() {
 
 function tenant(name: string | undefined | null): string {
   return name?.trim() ? name : "this tenant";
+}
+
+type AdminInviteRow = {
+  id: string;
+  email: string;
+  role: string;
+  invited_by: string | null;
+  created_at: string;
+  expires_at: string;
+  status: InviteStatus;
+};
+
+function toPendingInvite(i: AdminInviteRow): PendingInvite {
+  const expired = i.status === "expired" || new Date(i.expires_at).getTime() < Date.now();
+  return {
+    inviteId: i.id,
+    email: i.email,
+    displayName: i.email.split("@")[0],
+    role: i.role === "admin" ? "admin" : "member",
+    invitedAt: i.created_at,
+    displayStatus: expired ? "expired" : "pending",
+  };
 }

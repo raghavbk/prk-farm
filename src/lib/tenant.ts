@@ -25,21 +25,6 @@ export async function setActiveTenantId(tenantId: string): Promise<void> {
   });
 }
 
-export async function clearActiveTenantId(): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.delete(ACTIVE_TENANT_COOKIE);
-}
-
-// True when middleware resolved a tenant from the request host. Used to know
-// whether we should hide the tenant picker / cookie machinery.
-export async function isTenantFromHost(): Promise<boolean> {
-  return (await headers()).get("x-tenant-id") !== null;
-}
-
-export async function getRequestHost(): Promise<string | null> {
-  return (await headers()).get("x-host");
-}
-
 // True when the request landed on a platform-apex host (chukta.in). Used to
 // route platform admins straight to /platform and keep tenant users off the
 // operator console.

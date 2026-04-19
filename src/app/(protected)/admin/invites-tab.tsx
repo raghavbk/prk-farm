@@ -11,11 +11,7 @@ export type PendingInvite = {
   displayName: string;
   role: "admin" | "member";
   invitedAt: string;
-  expiresAt: string;
-  // True iff the row was explicitly flipped to 'expired' (someone tried to
-  // accept after expiry). Silently-past deadlines are detected client-side
-  // against the current wall clock.
-  statusExpired: boolean;
+  displayStatus: "pending" | "expired";
 };
 
 function humanAgo(iso: string): string {
@@ -27,10 +23,6 @@ function humanAgo(iso: string): string {
   const d = Math.round(h / 24);
   if (d < 14) return `${d}d ago`;
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-}
-
-function isExpired(invite: PendingInvite): boolean {
-  return invite.statusExpired || new Date(invite.expiresAt).getTime() < Date.now();
 }
 
 export function InvitesTab({
@@ -166,8 +158,8 @@ function InviteRow({
   const doResend = () => {
     startTransition(async () => {
       const res = await resendInvite(invite.inviteId);
+      // Success re-renders via revalidatePath; only surface errors here.
       if (res && "error" in res && res.error) setNotice(res.error);
-      else if (res && "success" in res && res.success) setNotice(res.success);
       closeMenu();
     });
   };
@@ -213,7 +205,7 @@ function InviteRow({
             {invite.email}
           </div>
           <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>
-            {isExpired(invite) ? "Expired" : "Pending"} · sent {humanAgo(invite.invitedAt)}
+            {invite.displayStatus === "expired" ? "Expired" : "Pending"} · sent {humanAgo(invite.invitedAt)}
           </div>
           {notice && (
             <div
@@ -259,8 +251,8 @@ function InviteRow({
             gap: 6,
             padding: "4px 10px",
             borderRadius: 999,
-            background: isExpired(invite) ? "var(--neg-wash)" : "var(--surface-2)",
-            color: isExpired(invite) ? "var(--neg)" : "var(--ink-3)",
+            background: invite.displayStatus === "expired" ? "var(--neg-wash)" : "var(--surface-2)",
+            color: invite.displayStatus === "expired" ? "var(--neg)" : "var(--ink-3)",
             fontSize: 11,
             fontWeight: 500,
           }}
@@ -269,7 +261,7 @@ function InviteRow({
             aria-hidden
             style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor" }}
           />
-          {isExpired(invite) ? "Expired" : "Pending"}
+          {invite.displayStatus === "expired" ? "Expired" : "Pending"}
         </span>
       </div>
 
@@ -331,7 +323,7 @@ function InviteRow({
               <MenuItem
                 onClick={doResend}
                 disabled={pending}
-                label={isExpired(invite) ? "Resend invite (refresh link)" : "Resend invite"}
+                label={invite.displayStatus === "expired" ? "Resend invite (refresh link)" : "Resend invite"}
               />
               <MenuItem
                 onClick={() => setConfirmRevoke(true)}

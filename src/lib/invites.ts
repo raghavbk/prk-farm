@@ -1,19 +1,32 @@
 import type { User } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+export type InviteStatus = "pending" | "expired" | "accepted" | "revoked";
+
+export type InviteAcceptReason =
+  | "not_found"
+  | "wrong_state"
+  | "expired"
+  | "wrong_account"
+  | "insert_failed";
+
 export type InviteAcceptOutcome =
   | { ok: true; tenantId: string }
-  | { ok: false; reason: "not_found" | "wrong_state" | "expired" | "wrong_account" | "insert_failed" };
+  | { ok: false; reason: InviteAcceptReason };
 
-// Accept an invite on behalf of a just-verified Supabase user.
-//
-// Used by /auth/callback (right after verifyOtp establishes a session) so
-// the membership is materialized in the same hop as the sign-in. That
-// avoids an extra Server-Action redirect through /auth/accept-invite,
-// which was losing cookies and bouncing the user to /login.
-//
-// Idempotent: a pre-existing tenant_members row for this (tenant, user) is
-// treated as a successful accept.
+const REASON_TO_PARAM: Record<InviteAcceptReason, string> = {
+  wrong_account: "invite_wrong_account",
+  expired: "invite_expired",
+  wrong_state: "invite_used",
+  not_found: "invite",
+  insert_failed: "invite_failed",
+};
+
+export function reasonToParam(reason: InviteAcceptReason): string {
+  return REASON_TO_PARAM[reason];
+}
+
+// Idempotent: a pre-existing tenant_members row is treated as a success.
 export async function acceptInviteForUser(
   user: User,
   token: string,

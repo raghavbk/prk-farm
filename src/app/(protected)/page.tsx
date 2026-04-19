@@ -1,7 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getActiveTenantId } from "@/lib/tenant";
+import { requireUserAndTenant } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ViewTransition } from "react";
 import { AnimatedInr } from "@/components/ui/animated-inr";
@@ -46,10 +44,7 @@ function formatDateHeader(d: Date) {
 }
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  const tenantId = await getActiveTenantId();
-  if (!tenantId) redirect("/tenants");
+  const { user, tenantId } = await requireUserAndTenant();
 
   const supabase = await createClient();
 

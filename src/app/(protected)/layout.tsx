@@ -19,11 +19,8 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
-  // chukta.in (or whatever PLATFORM_HOSTS is set to) is the platform console.
-  // Admins go straight to /platform. Non-admins used to be redirected to
-  // /login, but the login page itself redirects already-signed-in users back
-  // to / — the two redirects fought each other into an infinite loop. Render
-  // an inline "wrong door" page instead so nothing redirects.
+  // Non-admins on the platform apex get an inline notice rather than a
+  // redirect — /login bounces already-signed-in users back here, looping.
   if (await isPlatformHostRequest()) {
     if (await isCurrentUserPlatformAdmin()) {
       redirect("/platform");
@@ -36,17 +33,13 @@ export default async function ProtectedLayout({
   const pathname = (await headers()).get("x-pathname") ?? "";
   const onTenantPicker = pathname.startsWith("/tenants");
 
-  // Always render the picker with a minimal frame — regardless of cookie
-  // state. If the cookie is stale (survives env swaps or tenant deletion),
-  // picking a tenant on /tenants posts to /auth/switch-tenant which writes
-  // a fresh cookie and redirects to the tenant's primary host.
+  // Picker renders with its own minimal frame so stale-cookie users can
+  // still pick a tenant.
   if (onTenantPicker) {
     return <>{children}</>;
   }
 
   if (!activeTenantId) {
-    // /auth/resume auto-picks the single tenant, or sends to /tenants when
-    // there are multiple memberships / none.
     redirect("/auth/resume");
   }
 
@@ -60,9 +53,7 @@ export default async function ProtectedLayout({
     isCurrentUserPlatformAdmin(),
   ]);
 
-  // Stale / orphaned cookie: tenant doesn't exist or user isn't a member in
-  // it. Happens after env switches (prod ↔ UAT) or when a tenant gets
-  // deleted. /auth/resume (a route handler) can set a fresh cookie.
+  // Stale cookie (tenant deleted, env swap) — /auth/resume rewrites it.
   if (!tenantRes.data || !membershipRes.data) {
     redirect("/auth/resume");
   }
@@ -76,10 +67,7 @@ export default async function ProtectedLayout({
   const totals = summaryRes.data?.[0] ?? { total_you_owe: 0, total_owed_to_you: 0 };
   const hasMultipleTenants = (myTenantCountRes.count ?? 0) > 1;
 
-  // Account-switch flash (set by /auth/callback when clicking an invite
-  // link replaced a previous session). Only show if the stored email
-  // actually differs from the current user — otherwise the cookie is
-  // stale (user signed back in as themselves within the TTL).
+  // Flash set by /auth/callback when an invite link swapped in a new session.
   const cookieStore = await cookies();
   const previousEmail = cookieStore.get("flash_prev_user_email")?.value ?? "";
   const showSwitchBanner =

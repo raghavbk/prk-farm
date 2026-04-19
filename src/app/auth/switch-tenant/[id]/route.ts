@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isPlatformHost } from "@/lib/platform-hosts";
+import { isPlatformHost, schemeFor } from "@/lib/platform-hosts";
 
 // Cross-origin tenant switch. Server Actions struggle with cross-origin
 // redirects (React-DOM intercepts the form response and sometimes renders
@@ -83,8 +83,7 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ id: st
     return res;
   }
 
-  const scheme = targetHost.startsWith("localhost") || targetHost.startsWith("127.") ? "http" : "https";
-  const res = NextResponse.redirect(`${scheme}://${targetHost}/`, 303);
+  const res = NextResponse.redirect(`${schemeFor(targetHost)}://${targetHost}/`, 303);
   // The cookie is scoped to the current host regardless — not useful once
   // the browser is on the target host, but harmless. Kept for consistency
   // so a user who bounces back to the old host isn't in a stale state.

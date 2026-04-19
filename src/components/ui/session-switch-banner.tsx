@@ -4,10 +4,6 @@ import { useTransition } from "react";
 import { dismissSessionSwitchFlash } from "@/actions/flash";
 import { I } from "@/components/ui/icons";
 
-// Rendered by the protected layout when the current session was just
-// swapped in via an invite link (the browser was previously signed in as
-// a different user). The banner calls a server action to clear the flash
-// cookie + re-render when the user dismisses.
 export function SessionSwitchBanner({
   previousEmail,
   currentEmail,
@@ -48,16 +44,14 @@ export function SessionSwitchBanner({
       >
         <I.check size={14} />
       </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
+      <p style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 12, color: "var(--ink-3)" }}>
+        <strong style={{ display: "block", fontSize: 13, color: "var(--ink)", marginBottom: 2 }}>
           You&rsquo;re now signed in as {currentEmail}
-        </div>
-        <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
-          The invite link replaced the previous session on this browser
-          (<span className="mono">{previousEmail}</span>). Sign out and back in
-          if you meant to stay on that account.
-        </div>
-      </div>
+        </strong>
+        The invite link replaced the previous session on this browser
+        (<span className="mono">{previousEmail}</span>). Sign out and back in
+        if you meant to stay on that account.
+      </p>
       <button
         type="button"
         disabled={pending}
