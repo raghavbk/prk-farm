@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { isCurrentUserPlatformAdmin } from "@/lib/platform";
+import { isPlatformHostRequest } from "@/lib/tenant";
 
 export default async function PlatformLayout({
   children,
@@ -10,6 +11,11 @@ export default async function PlatformLayout({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+
+  // Only serve the operator console on the platform apex. A platform admin
+  // landing on a tenant host (e.g. prk.chukta.in/platform) goes to the tenant
+  // dashboard instead — they can still reach the console via chukta.in.
+  if (!(await isPlatformHostRequest())) redirect("/");
 
   const isPlatform = await isCurrentUserPlatformAdmin();
   if (!isPlatform) redirect("/");

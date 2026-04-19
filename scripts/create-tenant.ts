@@ -36,10 +36,31 @@ type Args = {
   owner: string;
   ownerName?: string;
   domain: string;
+  usedDefaultSubdomain: boolean;
+  slug: string;
   alias: string[];
   skipInvite: boolean;
   cnameTarget: string | null;
 };
+
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+function getPlatformApex(): string {
+  const raw = process.env.PLATFORM_HOSTS;
+  if (!raw) return "chukta.in";
+  const parts = raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const nonLocal = parts.find((p) => !p.startsWith("localhost") && !p.startsWith("127."));
+  return nonLocal ?? parts[0] ?? "chukta.in";
+}
 
 function loadEnvLocal() {
   const here = path.dirname(fileURLToPath(import.meta.url));
@@ -83,18 +104,31 @@ function parseCliArgs(): Args {
   const missing: string[] = [];
   if (!values.name) missing.push("--name");
   if (!values.owner) missing.push("--owner");
-  if (!values.domain) missing.push("--domain");
   if (missing.length) {
     console.error(`Missing required flag(s): ${missing.join(", ")}\n`);
     printUsage();
     process.exit(1);
   }
 
+  const name = values.name as string;
+  const slug = slugify(name);
+  if (!slug) {
+    console.error(`Cannot derive a slug from --name "${name}". Use ASCII letters/digits.`);
+    process.exit(1);
+  }
+
+  const hasDomain = typeof values.domain === "string" && (values.domain as string).trim().length > 0;
+  const domain = hasDomain
+    ? normalizeDomain(values.domain as string)
+    : `${slug}.${getPlatformApex()}`;
+
   return {
-    name: values.name as string,
+    name,
     owner: (values.owner as string).toLowerCase().trim(),
     ownerName: values["owner-name"] as string | undefined,
-    domain: normalizeDomain(values.domain as string),
+    domain,
+    usedDefaultSubdomain: !hasDomain,
+    slug,
     alias: ((values.alias as string[] | undefined) ?? []).map(normalizeDomain),
     skipInvite: values["skip-invite"] === true,
     cnameTarget: (values["cname-target"] as string | undefined) ?? process.env.TENANT_CNAME_TARGET ?? null,
@@ -107,9 +141,10 @@ function printUsage() {
 Required:
   --name          Display name for the tenant (e.g. "Acme Farm")
   --owner         First owner's email
-  --domain        Primary custom domain (e.g. farm.acme.com)
 
 Optional:
+  --domain        Primary custom domain (e.g. farm.acme.com). Defaults to
+                  <slug>.<PLATFORM_APEX> (chukta.in unless overridden via env).
   --owner-name    Display name shown in the ledger for the first owner
   --alias         Additional domain alias (repeatable)
   --skip-invite   Skip sending the invite email (owner must already exist)
@@ -226,11 +261,23 @@ async function main() {
     if (profileErr) throw profileErr;
   }
 
-  // 2. Create the tenant.
+  // 2. Create the tenant. Resolve a unique slug first — append a random
+  //    4-hex suffix if the base slug is taken.
+  let tenantSlug = args.slug;
+  const { data: slugHit } = await admin
+    .from("tenants")
+    .select("id")
+    .eq("slug", tenantSlug)
+    .maybeSingle();
+  if (slugHit) {
+    const suffix = Math.floor(Math.random() * 0xffff).toString(16).padStart(4, "0");
+    tenantSlug = `${tenantSlug.slice(0, 35)}-${suffix}`;
+  }
+
   const { data: tenantRow, error: tenantErr } = await admin
     .from("tenants")
-    .insert({ name: args.name, created_by: ownerUserId })
-    .select("id")
+    .insert({ name: args.name, slug: tenantSlug, created_by: ownerUserId })
+    .select("id, slug")
     .single();
   if (tenantErr || !tenantRow) {
     throw tenantErr ?? new Error("Tenant creation returned no row");
@@ -280,9 +327,10 @@ async function main() {
 
   console.log("\n✓ Tenant created\n");
   console.log(`  id:      ${tenantId}`);
+  console.log(`  slug:    ${tenantSlug}`);
   console.log(`  name:    ${args.name}`);
   console.log(`  owner:   ${args.owner}${ownerName ? ` (${ownerName})` : ""}`);
-  console.log(`  domain:  ${args.domain}  (primary)`);
+  console.log(`  domain:  ${args.domain}  (primary${args.usedDefaultSubdomain ? ", auto-generated" : ""})`);
   for (const a of args.alias) console.log(`           ${a}  (alias)`);
   console.log("");
 
@@ -290,10 +338,14 @@ async function main() {
   console.log("----------");
   if (!args.skipInvite) {
     console.log(`1. ${args.owner} will receive an email with a sign-up link.`);
-    console.log(`   The link lands on https://${args.domain}/auth/callback, so their`);
-    console.log(`   first session will be scoped to this tenant from the start.\n`);
+    console.log(`   It lands on https://${args.domain}/auth/callback, so their first`);
+    console.log(`   session is scoped to this tenant from the start.\n`);
   }
-  if (args.cnameTarget) {
+  if (args.usedDefaultSubdomain) {
+    console.log(`2. DNS — ${args.domain} runs on the platform wildcard (*.${getPlatformApex()}).`);
+    console.log(`   Make sure the wildcard CNAME + the wildcard domain are configured on`);
+    console.log(`   Vercel once; then every new slug under it works with zero DNS.\n`);
+  } else if (args.cnameTarget) {
     console.log(`2. DNS — create a CNAME at the owner's registrar:`);
     console.log(`     ${args.domain}   CNAME   ${args.cnameTarget}`);
     for (const a of args.alias) {

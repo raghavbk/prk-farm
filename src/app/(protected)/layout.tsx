@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
-import { getActiveTenantId } from "@/lib/tenant";
+import { getActiveTenantId, isPlatformHostRequest } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
+import { isCurrentUserPlatformAdmin } from "@/lib/platform";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { Sidebar } from "@/components/ui/sidebar";
@@ -15,6 +16,17 @@ export default async function ProtectedLayout({
   const user = await getCurrentUser();
   if (!user) {
     redirect("/login");
+  }
+
+  // chukta.in (or whatever PLATFORM_HOSTS is set to) is the platform console.
+  // Non-admins have no business on the apex, and admins should be routed
+  // straight to /platform — not to a tenant picker that wouldn't make sense
+  // here.
+  if (await isPlatformHostRequest()) {
+    if (await isCurrentUserPlatformAdmin()) {
+      redirect("/platform");
+    }
+    redirect("/login?reason=wrong-host");
   }
 
   const supabase = await createClient();

@@ -39,3 +39,10 @@ export async function isTenantFromHost(): Promise<boolean> {
 export async function getRequestHost(): Promise<string | null> {
   return (await headers()).get("x-host");
 }
+
+// True when the request landed on a platform-apex host (chukta.in). Used to
+// route platform admins straight to /platform and keep tenant users off the
+// operator console.
+export async function isPlatformHostRequest(): Promise<boolean> {
+  return (await headers()).get("x-platform-host") === "1";
+}

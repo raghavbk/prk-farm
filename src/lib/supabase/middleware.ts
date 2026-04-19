@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isPlatformHost } from "@/lib/platform-hosts";
 
 export async function updateSession(request: NextRequest) {
   // Forward a mutable copy of request headers so Server Components can read
@@ -8,11 +9,14 @@ export async function updateSession(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
 
-  // Host-based tenant resolution. The domain IS the tenant context on customer
-  // hosts; on platform/dev hosts this returns null and we fall back to the
-  // active_tenant_id cookie for the platform-admin console.
+  // Host-based tenant resolution. The domain IS the tenant context on
+  // customer hosts. Platform apex (chukta.in) is the operator console — it
+  // never resolves to a tenant; we set x-platform-host so downstream code can
+  // force a different landing page.
   const host = normalizeHost(request.headers.get("host"));
   if (host) requestHeaders.set("x-host", host);
+  const onPlatformHost = isPlatformHost(host);
+  if (onPlatformHost) requestHeaders.set("x-platform-host", "1");
 
   let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
 
@@ -42,9 +46,12 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Resolve host → tenant BEFORE the auth gate so onboarding / callback routes
-  // on customer hosts land under the right tenant context.
-  if (host) {
+  // Resolve host → tenant BEFORE the auth gate so onboarding / callback
+  // routes on customer hosts land under the right tenant context. Skip the
+  // RPC when we already know this is the platform apex — that host never has
+  // a tenant mapping (and shouldn't, because chukta.in is the operator
+  // console, not a tenant).
+  if (host && !onPlatformHost) {
     const { data: tenantId } = await supabase.rpc("resolve_tenant_by_domain", {
       p_domain: host,
     });

@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { I } from "@/components/ui/icons";
 
 type TenantRow = {
   id: string;
@@ -58,18 +60,39 @@ export default async function PlatformHomePage() {
       className="mx-auto"
       style={{ maxWidth: 1040, padding: "clamp(20px, 3vw, 32px) clamp(20px, 4vw, 40px) 56px" }}
     >
-      <div className="eyebrow" style={{ marginBottom: 8 }}>
-        Platform · all tenants
-      </div>
-      <h1
-        className="serif"
-        style={{ fontSize: "clamp(28px, 4.5vw, 40px)", margin: 0, letterSpacing: "-0.02em", lineHeight: 1.15 }}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: 16,
+          flexWrap: "wrap",
+          marginBottom: 8,
+        }}
       >
-        {tenants.length} {tenants.length === 1 ? "tenant" : "tenants"}
-      </h1>
+        <div style={{ minWidth: 0 }}>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>
+            Platform · all tenants
+          </div>
+          <h1
+            className="serif"
+            style={{
+              fontSize: "clamp(28px, 4.5vw, 40px)",
+              margin: 0,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.15,
+            }}
+          >
+            {tenants.length} {tenants.length === 1 ? "tenant" : "tenants"}
+          </h1>
+        </div>
+        <Link href="/platform/onboard" className="btn btn-accent">
+          <I.plus size={14} /> Onboard tenant
+        </Link>
+      </div>
       <p style={{ fontSize: 14, color: "var(--ink-3)", margin: "12px 0 28px", maxWidth: 560 }}>
-        Onboarding runs through the CLI (<code className="mono">npm run tenant:create</code>). This
-        page is the read-only platform view — tenants, their custom domains, and recent audit entries.
+        Onboard from this page or via the CLI (<code className="mono">npm run tenant:create</code>).
+        Below: tenants, their custom domains, and recent audit entries.
       </p>
 
       {/* Tenants list */}
