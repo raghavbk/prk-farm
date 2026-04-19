@@ -30,20 +30,34 @@ export async function GET(request: Request) {
   const supabase = await createClient();
 
   // After OTP verification / code exchange, decide where to send them.
-  //  invite + invite_token in user_metadata → /auth/set-password?next=
-  //    /auth/accept-invite?token=<token>  (the whole `next` value URL-encoded)
-  //  invite (no token)                    → /auth/set-password
-  //  anything else                        → /
+  //  invite (new user)        → /auth/set-password?next=/auth/accept-invite?token=X
+  //                               (token from user_metadata, they still need
+  //                                to set a password)
+  //  invite (no token)        → /auth/set-password
+  //  magiclink + invite_token → /auth/accept-invite?token=X  (existing user,
+  //                               password already exists, just complete the
+  //                               invite)
+  //  anything else            → /
   async function nextDestination(): Promise<string> {
+    const inviteTokenFromUrl = searchParams.get("invite_token");
+
     if (type === "invite") {
       const { data } = await supabase.auth.getUser();
-      const token = (data.user?.user_metadata as { invite_token?: string } | null)?.invite_token;
+      const metaToken = (data.user?.user_metadata as { invite_token?: string } | null)?.invite_token;
+      const token = metaToken ?? inviteTokenFromUrl;
       if (token) {
         const acceptPath = `/auth/accept-invite?token=${encodeURIComponent(token)}`;
         return `/auth/set-password?next=${encodeURIComponent(acceptPath)}`;
       }
       return "/auth/set-password";
     }
+
+    if (type === "magiclink" && inviteTokenFromUrl) {
+      // Existing user accepting a re-invite — they already have a password,
+      // skip set-password and go straight to the membership write.
+      return `/auth/accept-invite?token=${encodeURIComponent(inviteTokenFromUrl)}`;
+    }
+
     return "/";
   }
 

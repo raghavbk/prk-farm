@@ -1,6 +1,7 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
+import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveTenantId } from "@/lib/tenant";
@@ -138,14 +139,21 @@ export async function inviteMember(
   // Going straight to /auth/accept-invite would arrive without a session
   // cookie and get middleware-redirected to /login.
   const callbackUrl = `${scheme}://${host}/auth/callback`;
+  // For existing users we can't ferry the invite_token through Supabase
+  // user_metadata (it's set during account creation, not on each sign-in),
+  // so we tack it onto the callback URL as a query param and have
+  // /auth/callback forward on it.
+  const callbackWithInviteUrl = `${callbackUrl}?invite_token=${encodeURIComponent(invite.token)}`;
   const acceptUrl = `${scheme}://${host}/auth/accept-invite?token=${invite.token}`;
 
   let emailSent = false;
+  let emailError: string | null = null;
+
   if (!existingProfile) {
-    // Brand-new user — Supabase sends the sign-up email. The invite token
-    // travels via user_metadata so /auth/callback can forward to
-    // /auth/set-password?next=/auth/accept-invite?token=... after the OTP
-    // verification establishes the session.
+    // Brand-new user — Supabase sends the sign-up email via inviteUserByEmail.
+    // The invite token travels via user_metadata so /auth/callback can
+    // forward to /auth/set-password?next=/auth/accept-invite?token=...
+    // after the OTP verification establishes the session.
     const name = displayName?.trim() || normalizedEmail.split("@")[0];
     const { error: mailErr } = await admin.auth.admin.inviteUserByEmail(normalizedEmail, {
       data: {
@@ -158,26 +166,65 @@ export async function inviteMember(
       redirectTo: callbackUrl,
     });
     if (mailErr) {
-      // Clean up the invite row so the operator can retry after fixing SMTP.
-      await admin.from("tenant_invites").delete().eq("id", invite.id);
-      return { error: `Could not send invite email: ${mailErr.message}` };
+      emailError = mailErr.message;
+    } else {
+      emailSent = true;
     }
-    emailSent = true;
+  } else {
+    // Existing user — inviteUserByEmail refuses to re-invite. Send a
+    // magic-link instead (same SMTP + rate limits, different template).
+    // The callback URL carries the invite token so the OTP hop forwards
+    // directly to /auth/accept-invite once the session is re-established.
+    const anon = createAnonClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { error: otpErr } = await anon.auth.signInWithOtp({
+      email: normalizedEmail,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: callbackWithInviteUrl,
+      },
+    });
+    if (otpErr) {
+      emailError = otpErr.message;
+    } else {
+      emailSent = true;
+    }
   }
+
+  // Non-fatal: if the email call errored (rate limit, bad SMTP config, etc),
+  // we keep the tenant_invites row so the operator can share the accept URL
+  // manually and/or the dashboard banner catches the user on next sign-in.
 
   await logAction({
     tenantId,
     action: emailSent ? "invite.sent" : "invite.queued",
     resourceType: "tenant_invite",
     resourceId: invite.id,
-    metadata: { email: normalizedEmail, role, accept_url: acceptUrl, email_sent: emailSent },
+    metadata: {
+      email: normalizedEmail,
+      role,
+      accept_url: acceptUrl,
+      email_sent: emailSent,
+      email_error: emailError,
+    },
   });
 
   revalidatePath("/admin");
+  if (emailSent) {
+    return {
+      success: `Invite sent to ${normalizedEmail}. They'll receive an email with a link to join.`,
+    };
+  }
+  // Email didn't go — most likely rate-limited by Supabase's default SMTP
+  // (4/hr free, 30/hr Pro). The invite row is still pending so sign-in
+  // banners will surface it, and the operator can copy the link below.
   return {
-    success: emailSent
-      ? `Invite sent to ${normalizedEmail}. They'll receive an email with a link to join.`
-      : `Invite recorded for ${normalizedEmail}. Since they already have a chukta account, they'll see the pending invite the next time they sign in. (Or share this link: ${acceptUrl})`,
+    success: `Invite saved for ${normalizedEmail}, but the email didn't send${
+      emailError ? ` (${emailError})` : ""
+    }. Share this link with them directly: ${acceptUrl}`,
   };
 }
 
