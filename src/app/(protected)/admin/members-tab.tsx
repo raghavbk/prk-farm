@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { removeMember, updateMemberRole } from "@/actions/admin";
 import { Avatar } from "@/components/ui/avatar";
 import { I } from "@/components/ui/icons";
@@ -114,6 +114,31 @@ function MemberRow({
   const hideMenu = isMe;
   const roleLabel = member.role === "admin" ? "Tenant admin" : "Member";
   const joined = humanJoined(member.joinedAt);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click + Escape. pointerdown (not click) so clicking
+  // a sibling ⋯ button closes this menu before the other one opens.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointer = (e: PointerEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+        setConfirmRemove(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setConfirmRemove(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   return (
     <div
@@ -192,7 +217,7 @@ function MemberRow({
         {joined}
       </div>
 
-      <div style={{ position: "relative", justifySelf: "end" }}>
+      <div ref={wrapRef} style={{ position: "relative", justifySelf: "end" }}>
         {!hideMenu && (
           <button
             type="button"
@@ -226,13 +251,18 @@ function MemberRow({
               position: "absolute",
               top: "calc(100% + 6px)",
               right: 0,
-              minWidth: 200,
+              minWidth: 220,
+              // Force opacity:1 and blur so underlying row text never
+              // bleeds through the popover. var(--card) is opaque, but
+              // we guard against inherited animation opacity.
               background: "var(--card)",
+              opacity: 1,
+              backdropFilter: "blur(4px)",
               border: "1px solid var(--rule)",
               borderRadius: 12,
               boxShadow: "var(--shadow-md)",
               padding: 6,
-              zIndex: 10,
+              zIndex: 50,
             }}
           >
             <MenuItem

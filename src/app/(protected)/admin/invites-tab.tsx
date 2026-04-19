@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { revokeInvite } from "@/actions/admin";
 import { I } from "@/components/ui/icons";
 
@@ -139,6 +139,33 @@ function InviteRow({
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmRevoke, setConfirmRevoke] = useState(false);
   const [pending, startTransition] = useTransition();
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Close the popover on outside interaction + Escape.
+  // pointerdown fires before click, so clicking another ⋯ button closes
+  // this menu cleanly instead of flashing two open menus on top of each
+  // other.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointer = (e: PointerEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+        setConfirmRevoke(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setConfirmRevoke(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   const revoke = () => {
     startTransition(async () => {
@@ -220,7 +247,7 @@ function InviteRow({
         {humanAgo(invite.invitedAt)}
       </div>
 
-      <div style={{ position: "relative", justifySelf: "end" }}>
+      <div ref={wrapRef} style={{ position: "relative", justifySelf: "end" }}>
         <button
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
@@ -253,13 +280,19 @@ function InviteRow({
               position: "absolute",
               top: "calc(100% + 6px)",
               right: 0,
-              minWidth: 200,
+              minWidth: 220,
+              // Solid surface + subtle backdrop blur so row text never
+              // ghosts through the popover. var(--card) is theme-driven
+              // and opaque, but we force opacity:1 in case a parent is
+              // fading in via the .stagger animation.
               background: "var(--card)",
+              opacity: 1,
+              backdropFilter: "blur(4px)",
               border: "1px solid var(--rule)",
               borderRadius: 12,
               boxShadow: "var(--shadow-md)",
               padding: 6,
-              zIndex: 10,
+              zIndex: 50,
             }}
           >
             {confirmRevoke ? (
