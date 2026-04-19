@@ -247,7 +247,7 @@ async function main() {
           full_name: ownerName,
           display_name: ownerName,
           email: args.owner,
-          invited_role: "owner",
+          invited_role: "admin",
         },
         redirectTo: `${primaryUrl}/auth/callback`,
       },
@@ -310,10 +310,12 @@ async function main() {
     throw domainsErr;
   }
 
-  // 3. tenant_members owner row.
+  // 3. First tenant admin membership. migration 006 replaced the old
+  //    "owner" role with "admin"/"member" (platform admins do cross-tenant
+  //    work; tenant admins manage their own tenant).
   const { error: memberErr } = await admin
     .from("tenant_members")
-    .insert({ tenant_id: tenantId, user_id: ownerUserId, role: "owner" });
+    .insert({ tenant_id: tenantId, user_id: ownerUserId, role: "admin" });
   if (memberErr) {
     await admin.from("tenants").delete().eq("id", tenantId);
     throw memberErr;

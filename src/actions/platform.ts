@@ -114,7 +114,7 @@ export async function onboardTenant(
         full_name: effectiveOwnerName,
         display_name: effectiveOwnerName,
         email: ownerEmail,
-        invited_role: "owner",
+        invited_role: "admin",
       },
       redirectTo: `${primaryUrl}/auth/callback`,
     },
@@ -166,10 +166,12 @@ export async function onboardTenant(
     return { ok: false, error: `Domain register failed: ${domainsErr.message}` };
   }
 
-  // Owner membership.
+  // First tenant admin membership. "owner" as a tenant role was retired in
+  // migration 006 — all tenants now have { admin, member } only. Platform
+  // admins handle structural operations cross-tenant.
   const { error: memberErr } = await admin
     .from("tenant_members")
-    .insert({ tenant_id: tenantId, user_id: ownerUserId, role: "owner" });
+    .insert({ tenant_id: tenantId, user_id: ownerUserId, role: "admin" });
   if (memberErr) {
     await admin.from("tenants").delete().eq("id", tenantId);
     return { ok: false, error: `Member insert failed: ${memberErr.message}` };

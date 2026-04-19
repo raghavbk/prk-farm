@@ -16,7 +16,7 @@ export type Tenant = {
 export type TenantMember = {
   tenant_id: string;
   user_id: string;
-  role: "owner" | "member";
+  role: "admin" | "member";
   joined_at: string;
 };
 

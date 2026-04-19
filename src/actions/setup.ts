@@ -65,11 +65,12 @@ export async function setupAdmin(
 
   if (tenantError) return { error: tenantError.message };
 
-  // Add creator as owner
+  // First user becomes tenant admin. The old "owner" role was retired in
+  // migration 006 — { admin, member } only.
   await admin.from("tenant_members").insert({
     tenant_id: tenant.id,
     user_id: userId,
-    role: "owner",
+    role: "admin",
   });
 
   // Sign them in
