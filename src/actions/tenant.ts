@@ -1,66 +1,48 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/auth";
-import { setActiveTenantId } from "@/lib/tenant";
-import { logAction } from "@/lib/audit";
+import { getRequestHost, setActiveTenantId } from "@/lib/tenant";
+import { isPlatformHost } from "@/lib/platform-hosts";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-export type ActionResult = { error?: string } | void;
-
-export async function createTenant(
-  _prev: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
-  const name = formData.get("name") as string;
-  if (!name?.trim()) {
-    return { error: "Tenant name is required" };
-  }
-
-  const user = await getCurrentUser();
-  if (!user) {
-    return { error: "Not authenticated" };
-  }
-
-  const supabase = await createClient();
-
-  // Create tenant
-  const { data: tenant, error: tenantError } = await supabase
-    .from("tenants")
-    .insert({ name: name.trim(), created_by: user.id })
-    .select()
-    .single();
-
-  if (tenantError) {
-    return { error: tenantError.message };
-  }
-
-  // Add creator as owner
-  const { error: memberError } = await supabase
-    .from("tenant_members")
-    .insert({ tenant_id: tenant.id, user_id: user.id, role: "owner" });
-
-  if (memberError) {
-    return { error: memberError.message };
-  }
-
-  await logAction({
-    tenantId: tenant.id,
-    action: "tenant.created",
-    resourceType: "tenant",
-    resourceId: tenant.id,
-    metadata: { name: name.trim() },
-  });
-
-  // Set as active tenant and redirect to dashboard
-  await setActiveTenantId(tenant.id);
-  revalidatePath("/");
-  redirect("/");
-}
+// createTenant() is retired. Tenant creation is a platform-admin operation
+// that runs through /platform/onboard (onboardTenant) or the CLI
+// (npm run tenant:create).
 
 export async function switchTenant(tenantId: string) {
+  // Cookie acts as a fallback on hosts without a tenant mapping (platform
+  // apex, localhost without a domain row, Vercel preview URLs). On a real
+  // tenant host the middleware's resolve_tenant_by_domain wins, so we also
+  // redirect the browser to the target tenant's primary domain — otherwise
+  // picking PRK while on test.chukta.in would silently drop you back on
+  // Test Farm because the host wins.
   await setActiveTenantId(tenantId);
   revalidatePath("/");
-  redirect("/");
+
+  const supabase = await createClient();
+  const { data: primary } = await supabase
+    .from("tenant_domains")
+    .select("domain")
+    .eq("tenant_id", tenantId)
+    .eq("is_primary", true)
+    .maybeSingle();
+
+  const currentHost = await getRequestHost();
+  const targetHost = primary?.domain ?? null;
+
+  // Same host already — a plain redirect is enough; the cookie (or the host
+  // match) will resolve the right tenant.
+  if (!targetHost || (currentHost && targetHost === currentHost)) {
+    redirect("/");
+  }
+
+  // Localhost dev and platform-apex hosts can't "host-switch" usefully;
+  // rely on the cookie and stay put. On real hosts, cross over.
+  if (currentHost && (isPlatformHost(currentHost) || currentHost.startsWith("localhost") || currentHost.startsWith("127."))) {
+    redirect("/");
+  }
+
+  const scheme = targetHost.startsWith("localhost") || targetHost.startsWith("127.") ? "http" : "https";
+  redirect(`${scheme}://${targetHost}/`);
 }
