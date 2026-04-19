@@ -258,6 +258,47 @@ export async function removeMember(memberId: string) {
   revalidatePath("/admin");
 }
 
+// Mark a pending invite as revoked. Soft-delete (status='revoked') rather
+// than a row delete — the audit log keeps referencing the invite id, and
+// /auth/accept-invite already rejects anything !== 'pending' so the token
+// becomes inert without needing to null it out (which would also break the
+// table-wide UNIQUE(token) constraint if two invites were revoked).
+// Flipping status off 'pending' frees the partial unique index so the same
+// email can be re-invited cleanly.
+export async function revokeInvite(inviteId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const tenantId = await getActiveTenantId();
+  if (!tenantId) return { error: "No active tenant" };
+
+  if (!(await canManageTenant(tenantId))) {
+    return { error: "Only a tenant admin can revoke invites." };
+  }
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("tenant_invites")
+    .update({ status: "revoked" })
+    .eq("id", inviteId)
+    .eq("tenant_id", tenantId)
+    .eq("status", "pending")
+    .select("id, email")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!data) return { error: "Invite not found or already accepted." };
+
+  await logAction({
+    tenantId,
+    action: "invite.revoked",
+    resourceType: "tenant_invite",
+    resourceId: data.id,
+    metadata: { email: data.email },
+  });
+
+  revalidatePath("/admin");
+}
+
 export async function updateMemberRole(memberId: string, newRole: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };

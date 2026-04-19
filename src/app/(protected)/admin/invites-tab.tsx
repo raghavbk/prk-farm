@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useTransition } from "react";
+import { revokeInvite } from "@/actions/admin";
 import { I } from "@/components/ui/icons";
 
 export type PendingInvite = {
@@ -76,21 +78,22 @@ export function InvitesTab({
         background: "var(--card)",
         border: "1px solid var(--rule)",
         borderRadius: 14,
-        overflow: "hidden",
+        // No overflow:hidden — the row ⋯ menu popover needs to escape
+        // the card's rounded corners (same reason as members-tab).
       }}
     >
       <style>{`
         .it-grid {
           display: grid;
-          grid-template-columns: 1fr;
-          gap: 8px;
+          grid-template-columns: 1fr auto;
+          gap: 10px;
           padding: 14px 16px;
           align-items: center;
         }
         .it-grid .it-role, .it-grid .it-sent { display: none; }
         @media (min-width: 768px) {
           .it-grid {
-            grid-template-columns: 1fr 120px 120px;
+            grid-template-columns: 1fr 120px 120px 40px;
             gap: 16px;
             padding: 14px 18px;
           }
@@ -103,85 +106,213 @@ export function InvitesTab({
           borderBottom: "1px solid var(--rule)",
           background: "var(--surface-2)",
           padding: "12px 18px",
+          borderTopLeftRadius: 13,
+          borderTopRightRadius: 13,
         }}
       >
         <div className="eyebrow">Email</div>
         <div className="eyebrow it-role">Role</div>
         <div className="eyebrow it-sent">Invited</div>
+        <div />
       </div>
       {invites.map((inv, i) => (
-        <div
+        <InviteRow
           key={inv.userId}
-          className="it-grid stagger"
+          invite={inv}
+          isLast={i === invites.length - 1}
+          idx={i}
+        />
+      ))}
+    </div>
+  );
+}
+
+function InviteRow({
+  invite,
+  isLast,
+  idx,
+}: {
+  invite: PendingInvite;
+  isLast: boolean;
+  idx: number;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmRevoke, setConfirmRevoke] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  const revoke = () => {
+    startTransition(async () => {
+      await revokeInvite(invite.userId);
+      setMenuOpen(false);
+      setConfirmRevoke(false);
+    });
+  };
+
+  return (
+    <div
+      className="it-grid stagger"
+      style={{
+        ["--i" as string]: idx,
+        borderBottom: isLast ? "none" : "1px solid var(--rule-2)",
+        opacity: pending ? 0.5 : 1,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+        <span
+          aria-hidden
           style={{
-            ["--i" as string]: i,
-            borderBottom: i === invites.length - 1 ? "none" : "1px solid var(--rule-2)",
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            background: "var(--surface-2)",
+            color: "var(--ink-3)",
+            border: "1px dashed var(--rule)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-            <span
-              aria-hidden
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                background: "var(--surface-2)",
-                color: "var(--ink-3)",
-                border: "1px dashed var(--rule)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <I.user size={14} />
-            </span>
-            <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: "var(--ink)",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {inv.email}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>
-                Pending · {humanAgo(inv.invitedAt)}
-                {inv.displayName && inv.displayName !== inv.email ? ` · invited as ${inv.displayName}` : ""}
-              </div>
-            </div>
+          <I.user size={14} />
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: "var(--ink)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {invite.email}
           </div>
-          <div className="it-role">
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "5px 10px",
-                borderRadius: 999,
-                background: inv.role === "admin" ? "var(--accent-wash)" : "var(--surface-2)",
-                color: inv.role === "admin" ? "var(--accent)" : "var(--ink-2)",
-                fontSize: 12,
-                fontWeight: 500,
-                opacity: 0.85,
-              }}
-            >
-              <span
-                aria-hidden
-                style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor" }}
-              />
-              {inv.role === "admin" ? "Admin" : "Member"}
-            </span>
-          </div>
-          <div className="it-sent" style={{ fontSize: 12, color: "var(--ink-3)" }}>
-            {humanAgo(inv.invitedAt)}
+          <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>
+            Pending · {humanAgo(invite.invitedAt)}
+            {invite.displayName && invite.displayName !== invite.email ? ` · invited as ${invite.displayName}` : ""}
           </div>
         </div>
-      ))}
+      </div>
+      <div className="it-role">
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "5px 10px",
+            borderRadius: 999,
+            background: invite.role === "admin" ? "var(--accent-wash)" : "var(--surface-2)",
+            color: invite.role === "admin" ? "var(--accent)" : "var(--ink-2)",
+            fontSize: 12,
+            fontWeight: 500,
+            opacity: 0.85,
+          }}
+        >
+          <span
+            aria-hidden
+            style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor" }}
+          />
+          {invite.role === "admin" ? "Admin" : "Member"}
+        </span>
+      </div>
+      <div className="it-sent" style={{ fontSize: 12, color: "var(--ink-3)" }}>
+        {humanAgo(invite.invitedAt)}
+      </div>
+
+      <div style={{ position: "relative", justifySelf: "end" }}>
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          disabled={pending}
+          title="More"
+          aria-label="Invite actions"
+          aria-expanded={menuOpen}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            border: "none",
+            cursor: pending ? "default" : "pointer",
+            background: "transparent",
+            color: "var(--ink-3)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        >
+          <I.dots size={16} />
+        </button>
+        {menuOpen && (
+          <div
+            role="menu"
+            style={{
+              position: "absolute",
+              top: "calc(100% + 6px)",
+              right: 0,
+              minWidth: 200,
+              background: "var(--card)",
+              border: "1px solid var(--rule)",
+              borderRadius: 12,
+              boxShadow: "var(--shadow-md)",
+              padding: 6,
+              zIndex: 10,
+            }}
+          >
+            {confirmRevoke ? (
+              <div style={{ padding: "6px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                  Revoke invite for {invite.email}?
+                </span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={revoke}
+                    disabled={pending}
+                    className="btn btn-danger"
+                    style={{ height: 30, padding: "0 10px", fontSize: 12 }}
+                  >
+                    {pending ? "Revoking…" : "Revoke"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmRevoke(false)}
+                    className="btn btn-ghost"
+                    style={{ height: 30, padding: "0 10px", fontSize: 12 }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => setConfirmRevoke(true)}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: "8px 10px",
+                  fontSize: 13,
+                  textAlign: "left",
+                  background: "transparent",
+                  border: "none",
+                  borderRadius: 8,
+                  color: "var(--neg)",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--neg-wash)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                Revoke invite
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
