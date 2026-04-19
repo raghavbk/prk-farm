@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isCurrentUserPlatformAdmin } from "@/lib/platform";
 import { getPlatformApex } from "@/lib/platform-hosts";
-import { slugify, uniqueSlug, isValidSlug } from "@/lib/slug";
+import { slugify, uniqueSlug, isValidSlug, isReservedSlug } from "@/lib/slug";
 import { logAction } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 
@@ -41,6 +41,7 @@ export async function onboardTenant(
   const ownerName = (formData.get("owner_name") as string | null)?.trim() ?? "";
   const customDomainInput = (formData.get("custom_domain") as string | null)?.trim() ?? "";
   const customDomain = customDomainInput ? normaliseDomain(customDomainInput) : "";
+  const slugInput = (formData.get("slug") as string | null)?.trim().toLowerCase() ?? "";
 
   if (!name) return { ok: false, error: "Tenant name is required." };
   if (!ownerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) {
@@ -54,12 +55,34 @@ export async function onboardTenant(
   const admin = createAdminClient();
   const apex = getPlatformApex();
 
-  // Slug + default subdomain.
-  const slug = await uniqueSlug(name, async (candidate: string) => {
-    if (!isValidSlug(candidate)) return true;
-    const { data } = await admin.from("tenants").select("id").eq("slug", candidate).maybeSingle();
-    return !!data;
-  });
+  // Slug resolution: operator override (validated + uniqueness-checked) or
+  // auto-derived from the tenant name.
+  let slug: string;
+  if (slugInput) {
+    const cleaned = slugify(slugInput);
+    if (!isValidSlug(cleaned) || cleaned !== slugInput) {
+      return {
+        ok: false,
+        error: "Slug must be lowercase a–z / 0–9 / hyphens, 2–40 chars, no leading/trailing hyphen.",
+      };
+    }
+    if (isReservedSlug(cleaned)) {
+      return { ok: false, error: `Slug "${cleaned}" is reserved — pick another.` };
+    }
+    const { data: clash } = await admin
+      .from("tenants")
+      .select("id")
+      .eq("slug", cleaned)
+      .maybeSingle();
+    if (clash) return { ok: false, error: `Slug "${cleaned}" is taken.` };
+    slug = cleaned;
+  } else {
+    slug = await uniqueSlug(name, async (candidate: string) => {
+      if (!isValidSlug(candidate)) return true;
+      const { data } = await admin.from("tenants").select("id").eq("slug", candidate).maybeSingle();
+      return !!data;
+    });
+  }
   const defaultDomain = `${slug}.${apex}`;
 
   const primaryDomain = customDomain || defaultDomain;

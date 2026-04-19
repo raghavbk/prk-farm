@@ -87,6 +87,7 @@ function parseCliArgs(): Args {
       name: { type: "string" },
       owner: { type: "string" },
       "owner-name": { type: "string" },
+      slug: { type: "string" },
       domain: { type: "string" },
       alias: { type: "string", multiple: true },
       "skip-invite": { type: "boolean", default: false },
@@ -111,9 +112,16 @@ function parseCliArgs(): Args {
   }
 
   const name = values.name as string;
-  const slug = slugify(name);
+  const slugRaw = ((values.slug as string | undefined) ?? "").trim().toLowerCase();
+  const slug = slugRaw ? slugify(slugRaw) : slugify(name);
   if (!slug) {
-    console.error(`Cannot derive a slug from --name "${name}". Use ASCII letters/digits.`);
+    console.error(`Cannot derive a slug from --name "${name}". Pass --slug explicitly or use ASCII letters/digits.`);
+    process.exit(1);
+  }
+  if (slugRaw && slug !== slugRaw) {
+    console.error(
+      `--slug "${slugRaw}" has invalid characters. Use only lowercase a–z, 0–9, and hyphens (2–40 chars).`,
+    );
     process.exit(1);
   }
 
@@ -143,6 +151,9 @@ Required:
   --owner         First owner's email
 
 Optional:
+  --slug          URL-safe tenant slug (2–40 chars, lowercase a–z / 0–9 / -).
+                  Used for <slug>.<PLATFORM_APEX> and for tenants.slug.
+                  Defaults to the slugified tenant name.
   --domain        Primary custom domain (e.g. farm.acme.com). Defaults to
                   <slug>.<PLATFORM_APEX> (chukta.in unless overridden via env).
   --owner-name    Display name shown in the ledger for the first owner

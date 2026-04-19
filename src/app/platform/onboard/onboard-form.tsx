@@ -1,18 +1,39 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { onboardTenant, type OnboardActionState } from "@/actions/platform";
 import { I } from "@/components/ui/icons";
+
+function slugifyClient(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
 
 export function OnboardForm({ platformApex }: { platformApex: string }) {
   const [state, formAction, pending] = useActionState<OnboardActionState, FormData>(
     onboardTenant,
     undefined,
   );
+  const [name, setName] = useState("");
+  const [slugOverride, setSlugOverride] = useState("");
+  const [customDomain, setCustomDomain] = useState("");
 
   // Bump the key on a successful onboard so React remounts the form and every
   // input resets to its default.
   const formKey = state?.ok ? `done-${state.tenantId}` : "idle";
+
+  // Live preview. Operator override wins; otherwise derive from the name.
+  const autoSlug = slugifyClient(name);
+  const previewSlug = slugOverride || autoSlug || "your-tenant";
+  const previewDomain = customDomain.trim()
+    ? customDomain.trim().toLowerCase()
+    : `${previewSlug}.${platformApex}`;
 
   return (
     <form
@@ -26,6 +47,21 @@ export function OnboardForm({ platformApex }: { platformApex: string }) {
           required
           placeholder="Acme Farm"
           className="input-warm"
+          onChange={(e) => setName(e.target.value)}
+        />
+      </Field>
+      <Field
+        label="Slug"
+        hint={`URL-safe identifier, 2–40 chars, a–z / 0–9 / hyphens. Leave blank to auto-generate from the name.`}
+      >
+        <input
+          name="slug"
+          placeholder={autoSlug || "acme-farm"}
+          className="input-warm mono"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          onChange={(e) => setSlugOverride(e.target.value.trim().toLowerCase())}
         />
       </Field>
       <Field label="Owner email" hint="First owner will receive a sign-up link.">
@@ -42,17 +78,39 @@ export function OnboardForm({ platformApex }: { platformApex: string }) {
       </Field>
       <Field
         label="Custom domain"
-        hint={`Optional. Leave blank to auto-generate a <slug>.${platformApex} subdomain.`}
+        hint={`Optional. Leave blank to use ${previewSlug}.${platformApex}.`}
       >
         <input
           name="custom_domain"
-          placeholder="farm.acme.com"
+          placeholder={`${previewSlug}.${platformApex}`}
           className="input-warm mono"
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck={false}
+          onChange={(e) => setCustomDomain(e.target.value)}
         />
       </Field>
+
+      <div
+        aria-live="polite"
+        style={{
+          padding: "10px 14px",
+          borderRadius: 10,
+          background: "var(--surface-2)",
+          border: "1px solid var(--rule)",
+          fontSize: 12,
+          color: "var(--ink-3)",
+          display: "flex",
+          alignItems: "baseline",
+          gap: 8,
+          flexWrap: "wrap",
+        }}
+      >
+        <span className="eyebrow">Tenant URL</span>
+        <span className="mono" style={{ color: "var(--ink)" }}>
+          https://{previewDomain}
+        </span>
+      </div>
 
       {state?.ok === false && (
         <div
