@@ -5,7 +5,6 @@ import { isCurrentUserPlatformAdmin } from "@/lib/platform";
 import { getPlatformApex } from "@/lib/platform-hosts";
 import { redirect } from "next/navigation";
 import { ViewTransition } from "react";
-import { switchTenant } from "@/actions/tenant";
 import { TenantSwitchButton } from "./tenant-switch-button";
 import { I } from "@/components/ui/icons";
 
@@ -108,7 +107,12 @@ export default async function TenantsPage() {
         <ul className="mt-6 space-y-2">
           {tenants.map((tenant) => (
             <li key={tenant.id}>
-              <form action={switchTenant.bind(null, tenant.id)}>
+              {/* POSTs to a plain Route Handler that sets the cookie + does
+                  the (possibly cross-origin) redirect to the tenant's
+                  primary host. Avoids React's Server-Action form plumbing
+                  for cross-origin, which has shown the "reload to try
+                  again" error on the target host's first request. */}
+              <form action={`/auth/switch-tenant/${tenant.id}`} method="post">
                 <TenantSwitchButton
                   isActive={tenant.id === activeTenantId}
                   name={tenant.name}

@@ -35,9 +35,10 @@ export default async function ProtectedLayout({
   const pathname = (await headers()).get("x-pathname") ?? "";
   const onTenantPicker = pathname.startsWith("/tenants");
 
-  // Always render the picker with a minimal frame — regardless of cookie state.
-  // If the cookie is stale (survives env swaps or tenant deletion), picking a
-  // tenant on /tenants overwrites it via the switchTenant server action.
+  // Always render the picker with a minimal frame — regardless of cookie
+  // state. If the cookie is stale (survives env swaps or tenant deletion),
+  // picking a tenant on /tenants posts to /auth/switch-tenant which writes
+  // a fresh cookie and redirects to the tenant's primary host.
   if (onTenantPicker) {
     return <>{children}</>;
   }
