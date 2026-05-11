@@ -6,6 +6,7 @@ import { isCurrentUserPlatformAdmin } from "@/lib/platform";
 import { getPlatformApex } from "@/lib/platform-hosts";
 import { slugify, uniqueSlug, isValidSlug, isReservedSlug } from "@/lib/slug";
 import { logAction } from "@/lib/audit";
+import { deleteAuthUserIfOrphan } from "@/lib/auth-cleanup";
 import { revalidatePath } from "next/cache";
 
 export type OnboardResult = {
@@ -209,4 +210,101 @@ export async function onboardTenant(
     cnameTarget: process.env.TENANT_CNAME_TARGET ?? null,
     inviteSent,
   };
+}
+
+// ============================================================
+// Delete a tenant (platform admin only).
+// ============================================================
+
+export type DeleteTenantResult =
+  | { ok: true; tenantId: string; slug: string }
+  | { ok: false; error: string };
+
+export type DeleteTenantActionState = DeleteTenantResult | undefined;
+
+export async function deleteTenant(
+  _prev: DeleteTenantActionState,
+  formData: FormData,
+): Promise<DeleteTenantResult> {
+  if (!(await isCurrentUserPlatformAdmin())) {
+    return { ok: false, error: "Not authorized." };
+  }
+
+  const tenantId = (formData.get("tenant_id") as string | null)?.trim() ?? "";
+  const confirmSlug = (formData.get("confirm_slug") as string | null)?.trim() ?? "";
+  if (!tenantId) return { ok: false, error: "Missing tenant id." };
+
+  const admin = createAdminClient();
+
+  // 1. Load tenant snapshot (needed for slug check + audit metadata).
+  const { data: tenant } = await admin
+    .from("tenants")
+    .select("id, name, slug")
+    .eq("id", tenantId)
+    .maybeSingle();
+  if (!tenant) {
+    // Force the page to re-fetch so a stale row clears even on this no-op.
+    revalidatePath("/platform");
+    return { ok: false, error: "Tenant no longer exists." };
+  }
+
+  // 2. Confirm slug (case-sensitive — slugs are lowercase by schema).
+  if (confirmSlug !== tenant.slug) {
+    return { ok: false, error: "Slug did not match." };
+  }
+
+  // 3. Capture members BEFORE the cascade — we need them for orphan cleanup.
+  const { data: memberRows } = await admin
+    .from("tenant_members")
+    .select("user_id")
+    .eq("tenant_id", tenantId);
+  const memberIds = (memberRows ?? []).map((r) => r.user_id as string);
+
+  // 4. Capture the primary domain for audit metadata.
+  const { data: primaryDomainRow } = await admin
+    .from("tenant_domains")
+    .select("domain")
+    .eq("tenant_id", tenantId)
+    .eq("is_primary", true)
+    .maybeSingle();
+  const primaryDomain = primaryDomainRow?.domain ?? null;
+
+  // 5. The cascading delete. FK rules wipe domains, members, invites, groups,
+  //    group_members, expenses, expense_splits. audit_log.tenant_id becomes
+  //    NULL via the existing ON DELETE SET NULL.
+  const { error: deleteErr } = await admin.from("tenants").delete().eq("id", tenantId);
+  if (deleteErr) {
+    return { ok: false, error: deleteErr.message };
+  }
+
+  // 6. Best-effort orphan cleanup per former member.
+  const failedUserCleanups: string[] = [];
+  for (const userId of memberIds) {
+    try {
+      await deleteAuthUserIfOrphan(admin, userId);
+    } catch {
+      failedUserCleanups.push(userId);
+    }
+  }
+
+  // 7. Audit (tenant_id null because the tenant is gone; metadata carries the
+  //    forensic detail).
+  await logAction({
+    tenantId: null,
+    action: "tenant.deleted",
+    resourceType: "tenant",
+    resourceId: tenant.id,
+    metadata: {
+      deleted_tenant_id: tenant.id,
+      name: tenant.name,
+      slug: tenant.slug,
+      primary_domain: primaryDomain,
+      member_count: memberIds.length,
+      failed_user_cleanups: failedUserCleanups,
+    },
+  });
+
+  revalidatePath("/platform");
+
+  return { ok: true, tenantId: tenant.id, slug: tenant.slug };
 }
