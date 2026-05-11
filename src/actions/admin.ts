@@ -8,6 +8,7 @@ import { getActiveTenantId } from "@/lib/tenant";
 import { canManageTenant } from "@/lib/platform";
 import { logAction } from "@/lib/audit";
 import { schemeFor } from "@/lib/platform-hosts";
+import { deleteAuthUserIfOrphan } from "@/lib/auth-cleanup";
 import { revalidatePath } from "next/cache";
 
 export type AdminActionResult = { error?: string; success?: string } | void;
@@ -23,44 +24,6 @@ function makeInviteToken(): string {
 }
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
-// Delete the auth user only when no memberships, pending invites, or
-// platform-admin row reference them. Best-effort: ON DELETE RESTRICT on
-// tenants/groups/expenses they authored can block deletion, which is
-// acceptable — zero memberships already blocks sign-in.
-async function deleteAuthUserIfOrphan(
-  admin: ReturnType<typeof createAdminClient>,
-  userId: string,
-): Promise<void> {
-  const { count: memberCount } = await admin
-    .from("tenant_members")
-    .select("tenant_id", { count: "exact", head: true })
-    .eq("user_id", userId);
-  if ((memberCount ?? 0) > 0) return;
-
-  const { data: platform } = await admin
-    .from("platform_admins")
-    .select("user_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (platform) return;
-
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("email")
-    .eq("id", userId)
-    .maybeSingle();
-  if (profile?.email) {
-    const { count: inviteCount } = await admin
-      .from("tenant_invites")
-      .select("id", { count: "exact", head: true })
-      .eq("email", profile.email.toLowerCase())
-      .eq("status", "pending");
-    if ((inviteCount ?? 0) > 0) return;
-  }
-
-  await admin.auth.admin.deleteUser(userId);
-}
 
 // Re-probes `profiles` each call because the invitee may have signed up
 // between first invite and a resend, flipping the email path from
