@@ -11,10 +11,15 @@ export default async function SetPasswordPage() {
 
   if (!user) redirect("/login");
 
-  // Skip the form for anyone already onboarded (no invite_token on metadata)
-  // or who has set a password before.
-  const meta = (user.user_metadata ?? {}) as { password_set?: boolean; invite_token?: string };
-  if (meta.password_set === true || meta.invite_token === undefined) {
+  // Skip the form for anyone who has set a password before, or anyone with
+  // no invite-flow marker at all (no invite_token AND no needs_password).
+  const meta = (user.user_metadata ?? {}) as {
+    password_set?: boolean;
+    invite_token?: string;
+    needs_password?: boolean;
+  };
+  const fromInvite = meta.invite_token !== undefined || meta.needs_password === true;
+  if (meta.password_set === true || !fromInvite) {
     redirect("/auth/resume");
   }
 

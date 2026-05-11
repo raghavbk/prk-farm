@@ -54,12 +54,13 @@ export async function setPassword(
 
   const supabase = await createClient();
 
-  // Drop invite_token after use so it can't re-trigger accept logic on a
-  // future callback hit.
+  // Drop invite_token / needs_password after use so they can't re-trigger
+  // set-password or accept-invite logic on a future callback hit.
   const { data: userRes } = await supabase.auth.getUser();
   const existing = (userRes.user?.user_metadata ?? {}) as Record<string, unknown>;
   const nextMeta = { ...existing, password_set: true };
   delete (nextMeta as { invite_token?: string }).invite_token;
+  delete (nextMeta as { needs_password?: boolean }).needs_password;
 
   const { error } = await supabase.auth.updateUser({ password, data: nextMeta });
 

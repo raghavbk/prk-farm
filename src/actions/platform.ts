@@ -116,6 +116,10 @@ export async function onboardTenant(
         display_name: effectiveOwnerName,
         email: ownerEmail,
         invited_role: "admin",
+        // Platform-onboarded owners aren't accepting a tenant_invites row —
+        // tenant_members is inserted directly below. We still need the auth
+        // callback to send them through /auth/set-password before /auth/resume.
+        needs_password: true,
       },
       redirectTo: `${primaryUrl}/auth/callback`,
     },

@@ -77,10 +77,16 @@ export async function GET(request: Request) {
     const metadata = (user.user_metadata ?? {}) as {
       invite_token?: string;
       password_set?: boolean;
+      needs_password?: boolean;
     };
     const metaToken = metadata.invite_token;
     const token = metaToken ?? searchParams.get("invite_token");
-    const needsPassword = metaToken !== undefined && metadata.password_set !== true;
+    // Either invite path (tenant-admin via invite_token, platform-onboarded
+    // owner via needs_password) requires the set-password step until the
+    // user has actually set one.
+    const needsPassword =
+      (metaToken !== undefined || metadata.needs_password === true) &&
+      metadata.password_set !== true;
 
     if (token) {
       const outcome = await acceptInviteForUser(user, token);
