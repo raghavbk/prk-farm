@@ -24,6 +24,7 @@ export type TabExpense = {
   paid_by_name: string;
   can_edit: boolean;
   edit_href: string;
+  tags?: { id: string; name: string; color: string }[];
 };
 
 export type TabTransfer = { from: string; to: string; amount: number };
@@ -172,6 +173,29 @@ function ExpensesTab({ expenses, groupId }: { expenses: TabExpense[]; groupId: s
                 <span style={{ width: 2, height: 2, borderRadius: "50%", background: "var(--ink-4)" }} />
                 <span className="mono">{day}</span>
               </div>
+              {e.tags && e.tags.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                  {e.tags.map((t) => (
+                    <span
+                      key={t.id}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: "2px 7px",
+                        borderRadius: 999,
+                        background: t.color + "22",
+                        border: `1px solid ${t.color}55`,
+                        color: t.color,
+                        fontSize: 10.5,
+                        fontWeight: 500,
+                        letterSpacing: "-0.01em",
+                      }}
+                    >
+                      {t.name}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="serif tnum" style={{ fontSize: 20, color: "var(--ink)", letterSpacing: "-0.01em" }}>
               {formatInr(e.amount)}

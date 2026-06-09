@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
 
   const base = request.nextUrl.clone();
   base.search = "";
+  const currentHost = (request.headers.get("x-host") ?? request.headers.get("host") ?? "").toLowerCase();
+  const localDevHost = isLocalDevHost(currentHost);
 
   if (!user) {
     base.pathname = "/login";
@@ -70,7 +72,9 @@ export async function GET(request: NextRequest) {
     const only = tenantIds[0];
     const primary = primaryByTenant.get(only);
     let target: string;
-    if (primary) {
+    if (localDevHost) {
+      target = `${base.origin}/`;
+    } else if (primary) {
       target = `${schemeFor(primary)}://${primary}/`;
     } else if (!isPlatformHost(request.headers.get("host"))) {
       target = `${base.origin}/`;
@@ -89,9 +93,13 @@ export async function GET(request: NextRequest) {
   const firstPrimary = tenantIds
     .map((id) => primaryByTenant.get(id))
     .find((d): d is string => !!d);
-  if (firstPrimary) {
+  if (!localDevHost && firstPrimary) {
     return NextResponse.redirect(`${schemeFor(firstPrimary)}://${firstPrimary}/tenants`);
   }
   base.pathname = "/tenants";
   return NextResponse.redirect(base);
+}
+
+function isLocalDevHost(host: string): boolean {
+  return host.startsWith("localhost") || host.startsWith("127.0.0.1");
 }

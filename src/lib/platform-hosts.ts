@@ -30,7 +30,11 @@ export const PLATFORM_HOSTS = parseHosts(process.env.PLATFORM_HOSTS);
 
 export function isPlatformHost(host: string | null | undefined): boolean {
   if (!host) return false;
-  return PLATFORM_HOSTS.includes(host.toLowerCase());
+  const normalized = host.toLowerCase();
+  if (process.env.NODE_ENV !== "production" && isLocalHost(normalized)) {
+    return false;
+  }
+  return PLATFORM_HOSTS.includes(normalized);
 }
 
 // The public apex used when auto-generating default tenant subdomains
@@ -41,7 +45,7 @@ export function getPlatformApex(): string {
   return first ?? PLATFORM_HOSTS[0] ?? "chukta.in";
 }
 
-function isLocalHost(host: string): boolean {
+export function isLocalHost(host: string): boolean {
   return host.startsWith("localhost") || host.startsWith("127.");
 }
 

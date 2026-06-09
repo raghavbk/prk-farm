@@ -1,8 +1,10 @@
 import { requireUserAndTenant } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
+import Link from "next/link";
 import { ViewTransition } from "react";
 import { EditGroupForm } from "./edit-group-form";
+import { I } from "@/components/ui/icons";
 
 export default async function EditGroupPage({
   params,
@@ -10,42 +12,17 @@ export default async function EditGroupPage({
   params: Promise<{ groupId: string }>;
 }) {
   const { groupId } = await params;
-  const { user, tenantId } = await requireUserAndTenant();
-
+  const { tenantId } = await requireUserAndTenant();
   const supabase = await createClient();
-
-  // Verify tenant owner
-  const { data: membership } = await supabase
-    .from("tenant_members")
-    .select("role")
-    .eq("tenant_id", tenantId)
-    .eq("user_id", user.id)
-    .single();
-
-  if (membership?.role !== "owner") redirect(`/groups/${groupId}`);
 
   const { data: group } = await supabase
     .from("groups")
-    .select("*")
+    .select("id, name, updated_at, created_at")
     .eq("id", groupId)
+    .eq("tenant_id", tenantId)
     .single();
 
   if (!group) notFound();
-
-  const { data: members } = await supabase
-    .from("group_members")
-    .select("user_id, ownership_pct, profiles(display_name, email)")
-    .eq("group_id", groupId);
-
-  const existingMembers = (members ?? []).map((m) => ({
-    userId: m.user_id,
-    email:
-      (m.profiles as unknown as { email: string })?.email ?? "",
-    displayName:
-      (m.profiles as unknown as { display_name: string })?.display_name ??
-      "Unknown",
-    ownershipPct: Number(m.ownership_pct),
-  }));
 
   return (
     <ViewTransition
@@ -53,14 +30,26 @@ export default async function EditGroupPage({
       exit={{ "nav-forward": "slide-to-left", "nav-back": "slide-to-right", default: "none" }}
       default="none"
     >
-    <main className="mx-auto w-full max-w-[1120px] px-5 sm:px-8 py-8 sm:py-10">
-      <h1 className="font-display text-2xl font-bold text-ink">Edit Group</h1>
-      <EditGroupForm
-        groupId={groupId}
-        groupName={group.name}
-        existingMembers={existingMembers}
-      />
-    </main>
+      <main className="mx-auto w-full max-w-[1120px] px-5 py-8 sm:px-8 sm:py-10">
+        <Link href={`/groups/${group.id}`} className="mono inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-ink-muted no-underline">
+          <I.chevronL size={12} />
+          Back to group
+        </Link>
+
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="eyebrow mb-2">Group settings</p>
+            <h1 className="serif m-0 text-[clamp(36px,6vw,58px)] leading-none tracking-[-0.025em] text-ink">
+              Edit group
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-ink-muted">
+              Update the basics for <span className="text-ink">{group.name}</span>.
+            </p>
+          </div>
+        </div>
+
+        <EditGroupForm groupId={group.id} groupName={group.name} />
+      </main>
     </ViewTransition>
   );
 }

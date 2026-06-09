@@ -6,6 +6,8 @@ import {
   deleteExpenseAction,
   type ExpenseActionResult,
 } from "@/actions/expense";
+import { TagPicker } from "@/components/tag-picker";
+import type { Tag } from "@/lib/types";
 
 type Props = {
   expense: {
@@ -17,9 +19,12 @@ type Props = {
   };
   groupId: string;
   members: { userId: string; displayName: string }[];
+  tenantId: string;
+  availableTags: Tag[];
+  selectedTagIds: string[];
 };
 
-export function EditExpenseForm({ expense, groupId, members }: Props) {
+export function EditExpenseForm({ expense, groupId, members, tenantId, availableTags, selectedTagIds }: Props) {
   const [state, formAction, pending] = useActionState<
     ExpenseActionResult,
     FormData
@@ -104,6 +109,12 @@ export function EditExpenseForm({ expense, groupId, members }: Props) {
             ))}
           </select>
         </div>
+
+        <TagPicker
+          tenantId={tenantId}
+          availableTags={availableTags}
+          selectedTagIds={selectedTagIds}
+        />
 
         {state?.error && (
           <p className="text-sm text-terra">{state.error}</p>

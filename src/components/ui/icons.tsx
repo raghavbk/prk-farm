@@ -65,4 +65,8 @@ export const I = {
   moon: (p: IconProps) => base({ ...p, children: <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" /> }),
   receipt: (p: IconProps) =>
     base({ ...p, children: <path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2zM9 7h6M9 11h6M9 15h4" /> }),
+  download: (p: IconProps) =>
+    base({ ...p, children: <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /> }),
+  upload: (p: IconProps) =>
+    base({ ...p, children: <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /> }),
 };

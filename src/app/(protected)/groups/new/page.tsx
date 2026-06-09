@@ -3,7 +3,7 @@ import { ViewTransition } from "react";
 import { CreateGroupForm } from "./create-group-form";
 
 export default async function NewGroupPage() {
-  const { user } = await requireUserAndTenant();
+  await requireUserAndTenant();
 
   return (
     <ViewTransition
@@ -16,7 +16,7 @@ export default async function NewGroupPage() {
       <p className="mt-1 text-sm text-ink-muted">
         Add members and set ownership percentages for expense splitting.
       </p>
-      <CreateGroupForm currentUserId={user.id} />
+      <CreateGroupForm />
     </main>
     </ViewTransition>
   );

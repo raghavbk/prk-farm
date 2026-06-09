@@ -8,6 +8,7 @@ import { OwnershipPie } from "@/components/ui/ownership-pie";
 import { GroupDetailTabs, type TabMember, type TabExpense, type TabTransfer } from "@/components/ui/group-detail-tabs";
 import { I } from "@/components/ui/icons";
 import { formatInr, formatInrSigned, formatUpdatedAt } from "@/lib/format";
+import { ImportExportButtons } from "@/components/import-export-buttons";
 
 type BalanceRow = { group_id: string; creditor_id: string; debtor_id: string; net_amount: number };
 
@@ -52,10 +53,23 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
       .eq("group_id", groupId),
     supabase
       .from("expenses")
-      .select("id, description, date, amount, paid_by, created_by, profiles!expenses_paid_by_fkey(display_name)")
+      .select("id, description, date, amount, paid_by, created_by, profiles!expenses_paid_by_fkey(display_name), expense_tags(tag_id, tags(id, name, color))")
       .eq("group_id", groupId)
       .order("date", { ascending: false })
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .then((res) => {
+        // If expense_tags table is missing (migration not yet applied) fall back
+        // to the query without the join so existing expenses still render.
+        if (res.error && /expense_tags|relationship/.test(res.error.message)) {
+          return supabase
+            .from("expenses")
+            .select("id, description, date, amount, paid_by, created_by, profiles!expenses_paid_by_fkey(display_name)")
+            .eq("group_id", groupId)
+            .order("date", { ascending: false })
+            .order("created_at", { ascending: false });
+        }
+        return res;
+      }),
     supabase.from("group_balances").select("*").eq("group_id", groupId),
   ]);
 
@@ -78,6 +92,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
     paid_by: string;
     created_by: string;
     profiles: { display_name: string } | null;
+    expense_tags: { tag_id: string; tags: { id: string; name: string; color: string } | null }[];
   };
   const rawExpenses = (expensesRes.data ?? []) as unknown as ExpenseRow[];
   const balances = (balancesRes.data ?? []) as BalanceRow[];
@@ -108,6 +123,9 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
     paid_by_name: e.profiles?.display_name ?? "Unknown",
     can_edit: e.created_by === user.id || isTenantOwner,
     edit_href: `/groups/${groupId}/expenses/${e.id}/edit`,
+    tags: (e.expense_tags ?? [])
+      .map((et) => et.tags)
+      .filter((t): t is { id: string; name: string; color: string } => t !== null),
   }));
 
   const transfers = simplifyTransfers(balances);
@@ -230,11 +248,10 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
                 <I.users size={14} /> Add member
               </Link>
             )}
-            {isTenantOwner && (
-              <Link href={`/groups/${groupId}/edit`} className="btn btn-ghost">
-                <I.edit size={14} /> Edit group
-              </Link>
-            )}
+            <Link href={`/groups/${groupId}/edit`} className="btn btn-ghost">
+              <I.edit size={14} /> Edit group
+            </Link>
+            <ImportExportButtons groupId={groupId} />
           </div>
 
           {/* Tabs */}

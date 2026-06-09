@@ -43,9 +43,14 @@ export async function GET(request: NextRequest) {
     .eq("tenant_id", outcome.tenantId)
     .eq("is_primary", true)
     .maybeSingle();
-  if (!primary?.domain) {
+  const currentHost = (request.headers.get("x-host") ?? request.headers.get("host") ?? "").toLowerCase();
+  if (isLocalDevHost(currentHost) || !primary?.domain) {
     here.pathname = "/";
     return NextResponse.redirect(here);
   }
   return NextResponse.redirect(`${schemeFor(primary.domain)}://${primary.domain}/`);
+}
+
+function isLocalDevHost(host: string): boolean {
+  return host.startsWith("localhost") || host.startsWith("127.0.0.1");
 }

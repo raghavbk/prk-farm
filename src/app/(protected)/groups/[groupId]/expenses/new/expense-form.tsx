@@ -2,14 +2,18 @@
 
 import { useActionState, useState } from "react";
 import { addExpense, type ExpenseActionResult } from "@/actions/expense";
+import { TagPicker } from "@/components/tag-picker";
+import type { Tag } from "@/lib/types";
 
 type Props = {
   groupId: string;
   members: { userId: string; displayName: string }[];
   currentUserId: string;
+  tenantId: string;
+  availableTags: Tag[];
 };
 
-export function ExpenseForm({ groupId, members, currentUserId }: Props) {
+export function ExpenseForm({ groupId, members, currentUserId, tenantId, availableTags }: Props) {
   const [splitMethod, setSplitMethod] = useState<"ownership" | "equal">("ownership");
   const [state, formAction, pending] = useActionState<ExpenseActionResult, FormData>(addExpense, undefined);
 
@@ -41,6 +45,8 @@ export function ExpenseForm({ groupId, members, currentUserId }: Props) {
           ))}
         </select>
       </div>
+
+      <TagPicker tenantId={tenantId} availableTags={availableTags} />
 
       {/* Split method toggle */}
       <div>

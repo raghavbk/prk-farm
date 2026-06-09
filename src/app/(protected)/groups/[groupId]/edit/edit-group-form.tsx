@@ -1,55 +1,35 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import {
-  updateGroup,
-  setOwnership,
-  type GroupActionResult,
-} from "@/actions/group";
-import { MemberSearch } from "@/components/member-search";
-import { OwnershipEditor } from "@/components/ownership-editor";
+import { useActionState } from "react";
+import Link from "next/link";
+import { updateGroup, type GroupActionResult } from "@/actions/group";
 
-type Member = {
-  userId: string;
-  email: string;
-  displayName: string;
-  ownershipPct: number;
-};
-
-export function EditGroupForm({
-  groupId,
-  groupName,
-  existingMembers,
-}: {
+type Props = {
   groupId: string;
   groupName: string;
-  existingMembers: Member[];
-}) {
-  const [members, setMembers] = useState<Member[]>(existingMembers);
+};
 
-  const [nameState, nameAction, namePending] = useActionState<
+export function EditGroupForm({ groupId, groupName }: Props) {
+  const [state, formAction, pending] = useActionState<
     GroupActionResult,
     FormData
   >(updateGroup, undefined);
 
-  const [ownerState, ownerAction, ownerPending] = useActionState<
-    GroupActionResult,
-    FormData
-  >(setOwnership, undefined);
-
-  const total = members.reduce((sum, m) => sum + m.ownershipPct, 0);
-  const isOwnershipValid = members.length > 0 && Math.abs(total - 100) < 0.01;
-
   return (
-    <div className="mt-6 space-y-8">
-      {/* Name edit */}
-      <form action={nameAction} className="space-y-3">
+    <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <form action={formAction} className="card-surface p-5 sm:p-6">
         <input type="hidden" name="groupId" value={groupId} />
-        <div>
-          <label
-            htmlFor="name"
-            className="block text-sm font-medium text-ink-muted"
-          >
+
+        <div className="border-b border-rule pb-5">
+          <p className="eyebrow mb-2">Basic details</p>
+          <h2 className="m-0 text-lg font-semibold text-ink">Group identity</h2>
+          <p className="mt-2 text-sm leading-6 text-ink-muted">
+            This name appears on the dashboard, group list, balances, and expense views.
+          </p>
+        </div>
+
+        <div className="pt-5">
+          <label htmlFor="name" className="section-label">
             Group name
           </label>
           <input
@@ -58,46 +38,35 @@ export function EditGroupForm({
             name="name"
             required
             defaultValue={groupName}
-            className="mt-1 w-full input-warm"
+            className="mt-2 input-warm"
           />
         </div>
-        {nameState?.error && (
-          <p className="text-sm text-terra">{nameState.error}</p>
+
+        {state?.error && (
+          <p className="mt-4 text-sm text-terra">{state.error}</p>
         )}
-        <button
-          type="submit"
-          disabled={namePending}
-          className="btn btn-primary btn-press"
-        >
-          {namePending ? "Saving..." : "Update Name"}
-        </button>
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Link href={`/groups/${groupId}`} className="btn btn-ghost justify-center">
+            Cancel
+          </Link>
+          <button
+            type="submit"
+            disabled={pending}
+            className="btn btn-primary btn-press justify-center"
+          >
+            {pending ? "Saving..." : "Save changes"}
+          </button>
+        </div>
       </form>
 
-      {/* Membership & ownership edit */}
-      <form action={ownerAction} className="space-y-6">
-        <input type="hidden" name="groupId" value={groupId} />
-        <input
-          type="hidden"
-          name="allocations"
-          value={JSON.stringify(
-            members.map((m) => ({ userId: m.userId, pct: m.ownershipPct }))
-          )}
-        />
-
-        <MemberSearch members={members} onChange={setMembers} />
-        <OwnershipEditor members={members} onChange={setMembers} />
-
-        {ownerState?.error && (
-          <p className="text-sm text-terra">{ownerState.error}</p>
-        )}
-        <button
-          type="submit"
-          disabled={ownerPending || !isOwnershipValid}
-          className="btn btn-primary btn-press w-full"
-        >
-          {ownerPending ? "Saving..." : "Update Members & Ownership"}
-        </button>
-      </form>
+      <aside className="card-surface p-5 sm:p-6">
+        <p className="eyebrow mb-2">Coming later</p>
+        <h2 className="m-0 text-base font-semibold text-ink">Group settings</h2>
+        <p className="mt-2 text-sm leading-6 text-ink-muted">
+          This page is ready for status, description, default split method, archive controls, and other group-level options.
+        </p>
+      </aside>
     </div>
   );
 }

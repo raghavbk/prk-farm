@@ -104,27 +104,41 @@ export async function updateGroup(
     .maybeSingle();
   if (!membership) return { error: "You're not a member of this tenant." };
 
-  const groupId = formData.get("groupId") as string;
-  const name = formData.get("name") as string;
-  if (!name?.trim()) return { error: "Group name is required" };
+  const groupId = formData.get("groupId");
+  if (typeof groupId !== "string" || !groupId.trim()) {
+    return { error: "Group ID is required" };
+  }
+
+  const name = formData.get("name");
+  if (typeof name !== "string" || !name.trim()) {
+    return { error: "Group name is required" };
+  }
+
+  const trimmedName = name.trim();
+  const trimmedGroupId = groupId.trim();
 
   const admin = createAdminClient();
-  const { error } = await admin
+  const { data: group, error } = await admin
     .from("groups")
-    .update({ name: name.trim(), updated_at: new Date().toISOString() })
-    .eq("id", groupId);
+    .update({ name: trimmedName, updated_at: new Date().toISOString() })
+    .eq("id", trimmedGroupId)
+    .eq("tenant_id", tenantId)
+    .select("id")
+    .maybeSingle();
   if (error) return { error: error.message };
+  if (!group) return { error: "Group not found or does not belong to this tenant." };
 
   await logAction({
     tenantId,
     action: "group.renamed",
     resourceType: "group",
-    resourceId: groupId,
-    metadata: { name: name.trim() },
+    resourceId: trimmedGroupId,
+    metadata: { name: trimmedName },
   });
 
-  revalidatePath(`/groups/${groupId}`);
-  redirect(`/groups/${groupId}`);
+  revalidatePath(`/groups/${trimmedGroupId}`);
+  revalidatePath(`/groups/${trimmedGroupId}/edit`);
+  redirect(`/groups/${trimmedGroupId}`);
 }
 
 export async function setOwnership(

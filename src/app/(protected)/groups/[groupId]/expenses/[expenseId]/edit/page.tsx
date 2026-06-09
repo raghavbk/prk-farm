@@ -1,8 +1,9 @@
-import { getCurrentUser } from "@/lib/auth";
+import { requireUserAndTenant } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ViewTransition } from "react";
 import { EditExpenseForm } from "./edit-expense-form";
+import type { Tag } from "@/lib/types";
 
 export default async function EditExpensePage({
   params,
@@ -10,31 +11,35 @@ export default async function EditExpensePage({
   params: Promise<{ groupId: string; expenseId: string }>;
 }) {
   const { groupId, expenseId } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  const { tenantId } = await requireUserAndTenant();
 
   const supabase = await createClient();
 
-  const { data: expense } = await supabase
-    .from("expenses")
-    .select("*")
-    .eq("id", expenseId)
-    .single();
+  const [expenseRes, membersRes, tagsRes, expenseTagsRes] = await Promise.all([
+    supabase.from("expenses").select("*").eq("id", expenseId).single(),
+    supabase
+      .from("group_members")
+      .select("user_id, profiles(display_name)")
+      .eq("group_id", groupId),
+    supabase.from("tags").select("*").eq("tenant_id", tenantId).order("name"),
+    supabase
+      .from("expense_tags")
+      .select("tag_id")
+      .eq("expense_id", expenseId),
+  ]);
 
-  if (!expense) notFound();
+  if (!expenseRes.data) notFound();
+  const expense = expenseRes.data;
 
-  // Get group members for "paid by" dropdown
-  const { data: members } = await supabase
-    .from("group_members")
-    .select("user_id, profiles(display_name)")
-    .eq("group_id", groupId);
-
-  const memberOptions = (members ?? []).map((m) => ({
+  const memberOptions = (membersRes.data ?? []).map((m) => ({
     userId: m.user_id,
     displayName:
       (m.profiles as unknown as { display_name: string })?.display_name ??
       "Unknown",
   }));
+
+  const tags = (tagsRes.data ?? []) as Tag[];
+  const selectedTagIds = (expenseTagsRes.data ?? []).map((r) => r.tag_id);
 
   return (
     <ViewTransition
@@ -48,6 +53,9 @@ export default async function EditExpensePage({
         expense={expense}
         groupId={groupId}
         members={memberOptions}
+        tenantId={tenantId}
+        availableTags={tags}
+        selectedTagIds={selectedTagIds}
       />
     </main>
     </ViewTransition>

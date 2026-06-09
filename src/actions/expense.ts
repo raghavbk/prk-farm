@@ -87,6 +87,15 @@ export async function addExpense(
 
   if (splitsError) return { error: splitsError.message };
 
+  // Attach tags if provided.
+  const tagIds = formData.getAll("tagIds").map(String).filter(Boolean);
+  if (tagIds.length > 0) {
+    const { error: tagsError } = await supabase
+      .from("expense_tags")
+      .insert(tagIds.map((tid) => ({ expense_id: expense.id, tag_id: tid })));
+    if (tagsError) return { error: tagsError.message };
+  }
+
   // Tenant id is reachable via the group — keep the read cheap since we just
   // wrote to it.
   const { data: groupRow } = await supabase
@@ -171,6 +180,15 @@ export async function editExpense(
           .eq("id", split.id);
       }
     }
+  }
+
+  // Replace tags: delete all existing, re-insert submitted set.
+  const tagIds = formData.getAll("tagIds").map(String).filter(Boolean);
+  await writer.from("expense_tags").delete().eq("expense_id", expenseId);
+  if (tagIds.length > 0) {
+    await writer
+      .from("expense_tags")
+      .insert(tagIds.map((tid) => ({ expense_id: expenseId, tag_id: tid })));
   }
 
   await logAction({

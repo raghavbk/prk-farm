@@ -62,6 +62,7 @@ export async function resolvePostAuthDestination(user: User): Promise<PostAuthDe
 
   const h = await headers();
   const host = (h.get("x-host") ?? h.get("host") ?? "").toLowerCase();
+  const localDevHost = isLocalDevHost(host);
 
   if (tenantIds.length === 1) {
     const tenantId = tenantIds[0];
@@ -69,7 +70,7 @@ export async function resolvePostAuthDestination(user: User): Promise<PostAuthDe
 
     await setActiveTenantCookie(tenantId);
 
-    if (!primary || primary === host) {
+    if (localDevHost || !primary || primary === host) {
       return { kind: "internal", path: "/" };
     }
     return { kind: "external", url: `${schemeFor(primary)}://${primary}/` };
@@ -78,10 +79,14 @@ export async function resolvePostAuthDestination(user: User): Promise<PostAuthDe
   // Multi-tenant — render the picker. Avoid landing it on the platform apex
   // where non-admins see "Wrong door".
   const firstPrimary = tenantIds.map((id) => primaryByTenant.get(id)).find((d): d is string => !!d);
-  if (firstPrimary && isPlatformHost(host)) {
+  if (!localDevHost && firstPrimary && isPlatformHost(host)) {
     return { kind: "external", url: `${schemeFor(firstPrimary)}://${firstPrimary}/tenants` };
   }
   return { kind: "internal", path: "/tenants" };
+}
+
+function isLocalDevHost(host: string): boolean {
+  return host.startsWith("localhost") || host.startsWith("127.0.0.1");
 }
 
 async function setActiveTenantCookie(tenantId: string): Promise<void> {

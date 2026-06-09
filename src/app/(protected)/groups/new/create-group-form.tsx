@@ -12,7 +12,7 @@ type Member = {
   ownershipPct: number;
 };
 
-export function CreateGroupForm({ currentUserId }: { currentUserId: string }) {
+export function CreateGroupForm() {
   const [members, setMembers] = useState<Member[]>([]);
   const [state, formAction, pending] = useActionState<
     GroupActionResult,
@@ -21,9 +21,6 @@ export function CreateGroupForm({ currentUserId }: { currentUserId: string }) {
 
   const total = members.reduce((sum, m) => sum + m.ownershipPct, 0);
   const isValid = members.length > 0 && Math.abs(total - 100) < 0.01;
-
-  // Filter out current user from being added twice (they can add themselves via search)
-  const _ = currentUserId; // available for future use
 
   return (
     <form action={formAction} className="mt-6 space-y-6">

@@ -1,8 +1,9 @@
-import { getCurrentUser } from "@/lib/auth";
+import { requireUserAndTenant } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ViewTransition } from "react";
 import { ExpenseForm } from "./expense-form";
+import type { Tag } from "@/lib/types";
 
 export default async function NewExpensePage({
   params,
@@ -10,31 +11,34 @@ export default async function NewExpensePage({
   params: Promise<{ groupId: string }>;
 }) {
   const { groupId } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  const { user, tenantId } = await requireUserAndTenant();
 
   const supabase = await createClient();
 
-  const { data: group } = await supabase
-    .from("groups")
-    .select("id, name")
-    .eq("id", groupId)
-    .single();
+  const [groupRes, membersRes, tagsRes] = await Promise.all([
+    supabase.from("groups").select("id, name").eq("id", groupId).single(),
+    supabase
+      .from("group_members")
+      .select("user_id, profiles(display_name)")
+      .eq("group_id", groupId),
+    supabase
+      .from("tags")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .order("name"),
+  ]);
 
-  if (!group) notFound();
+  if (!groupRes.data) notFound();
+  const group = groupRes.data;
 
-  // Get group members for "paid by" dropdown
-  const { data: members } = await supabase
-    .from("group_members")
-    .select("user_id, profiles(display_name)")
-    .eq("group_id", groupId);
-
-  const memberOptions = (members ?? []).map((m) => ({
+  const memberOptions = (membersRes.data ?? []).map((m) => ({
     userId: m.user_id,
     displayName:
       (m.profiles as unknown as { display_name: string })?.display_name ??
       "Unknown",
   }));
+
+  const tags = (tagsRes.data ?? []) as Tag[];
 
   return (
     <ViewTransition
@@ -49,6 +53,8 @@ export default async function NewExpensePage({
         groupId={groupId}
         members={memberOptions}
         currentUserId={user.id}
+        tenantId={tenantId}
+        availableTags={tags}
       />
     </main>
     </ViewTransition>
