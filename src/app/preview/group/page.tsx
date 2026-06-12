@@ -149,7 +149,7 @@ export default function PreviewGroupPage() {
               gap: 8,
             }}
           >
-            <OwnershipPie members={members.map((m) => ({ id: m.id, pct: m.ownership_pct }))} size={160} />
+            <OwnershipPie members={members.map((m) => ({ id: m.id, pct: m.ownership_pct, name: m.name }))} size={160} />
           </div>
         </div>
 

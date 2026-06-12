@@ -208,18 +208,38 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
                   Updated {updatedLabel}
                 </span>
               </div>
-              <h1
-                className="serif"
-                style={{
-                  fontSize: "clamp(36px, 6vw, 58px)",
-                  margin: 0,
-                  letterSpacing: "-0.025em",
-                  lineHeight: 1,
-                  color: "var(--ink)",
-                }}
-              >
-                {group.name}
-              </h1>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <h1
+                  className="serif"
+                  style={{
+                    fontSize: "clamp(36px, 6vw, 58px)",
+                    margin: 0,
+                    letterSpacing: "-0.025em",
+                    lineHeight: 1,
+                    color: "var(--ink)",
+                  }}
+                >
+                  {group.name}
+                </h1>
+                {isTenantAdmin && (
+                  <Link
+                    href={`/groups/${groupId}/edit`}
+                    title="Edit group"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--ink-3)",
+                      marginTop: 6,
+                      flexShrink: 0,
+                    }}
+                    className="edit-group-icon"
+                  >
+                    <I.edit size={18} />
+                  </Link>
+                )}
+              </div>
+              <style>{`.edit-group-icon:hover { color: var(--ink) !important; }`}</style>
               <div style={{ display: "flex", gap: 28, marginTop: 20, flexWrap: "wrap" }}>
                 <Stat label="Total spent" value={formatInr(total)} big />
                 <Stat label="Expenses" value={expenses.length} />
@@ -248,30 +268,47 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
                 }}
               >
                 <OwnershipPie
-                  members={members.map((m) => ({ id: m.id, pct: m.ownership_pct }))}
+                  members={members.map((m) => ({ id: m.id, pct: m.ownership_pct, name: m.name }))}
                   size={160}
                 />
               </div>
             )}
           </div>
 
-          {/* Action bar */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+          {/* Action bar — left: daily actions · right: management */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+            {/* Daily operations */}
             <Link href={`/groups/${groupId}/expenses/new`} className="btn btn-accent shimmer">
               <I.plus size={14} /> Log expense
             </Link>
-            {isTenantAdmin && (
-              <Link href={`/groups/${groupId}/members`} className="btn btn-ghost">
-                <I.users size={14} /> Add member
-              </Link>
-            )}
             <Link href={`/groups/${groupId}/settle`} className="btn btn-ghost">
               <I.arrow size={14} /> Settle
             </Link>
-            <Link href={`/groups/${groupId}/edit`} className="btn btn-ghost">
-              <I.edit size={14} /> Edit group
-            </Link>
             <ImportExportButtons groupId={groupId} />
+
+            {/* Spacer */}
+            <div style={{ flex: 1 }} />
+
+            {/* Group management — only shown to admins */}
+            {isTenantAdmin && (
+              <>
+                <div style={{ display: "flex", alignItems: "center", borderRadius: 10, border: "1px solid var(--rule, #1a1a20)", overflow: "hidden" }}>
+                  <Link
+                    href={`/groups/${groupId}/members`}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "7px 14px", fontSize: 12, color: "var(--ink-3)",
+                      textDecoration: "none", whiteSpace: "nowrap",
+                      fontFamily: "var(--font-sans)",
+                    }}
+                    className="mgmt-btn"
+                  >
+                    <I.users size={13} /> Members
+                  </Link>
+                </div>
+                <style>{`.mgmt-btn:hover { background: var(--surface-warm, #111114); color: var(--ink) !important; }`}</style>
+              </>
+            )}
           </div>
 
           {/* Tabs */}

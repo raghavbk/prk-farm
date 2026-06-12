@@ -45,6 +45,10 @@ export function MembersForm({ groupId, initialMembers }: Props) {
         <p className="text-sm text-terra">{state.error}</p>
       )}
 
+      <p style={{ fontSize: 12, color: "var(--ink-3)", margin: 0, lineHeight: 1.5 }}>
+        Ownership changes apply to new expenses only. Existing expense splits are not retroactively affected.
+      </p>
+
       <button
         type="submit"
         disabled={pending || !isValid}

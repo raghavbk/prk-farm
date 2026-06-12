@@ -214,19 +214,17 @@ function ExpensesTab({ expenses, groupId }: { expenses: TabExpense[]; groupId: s
               padding: "5px 12px",
               borderRadius: 8,
               border: "1px solid",
-              borderColor: isFiltered ? "var(--accent)" : "var(--rule-strong, #1c1c22)",
+              borderColor: isFiltered ? "var(--accent)" : "var(--rule, #1a1a20)",
               background: isFiltered
                 ? "color-mix(in oklch, var(--accent) 10%, transparent)"
-                : "var(--surface-warm, #111114)",
-              color: isFiltered ? "var(--accent)" : "var(--ink-3)",
-              fontSize: 11,
-              fontFamily: "var(--font-mono)",
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
+                : "transparent",
+              color: isFiltered ? "var(--accent)" : "var(--ink-2)",
+              fontSize: 12,
+              fontWeight: 450,
               cursor: "pointer",
             }}
           >
-            <I.filter size={11} />
+            <I.filter size={12} />
             Filter
             {activeCount > 0 && (
               <span style={{
@@ -254,13 +252,11 @@ function ExpensesTab({ expenses, groupId }: { expenses: TabExpense[]; groupId: s
                 gap: 6,
                 padding: "5px 12px",
                 borderRadius: 8,
-                border: "1px solid var(--rule-strong, #1c1c22)",
-                background: "var(--surface-warm, #111114)",
-                color: "var(--ink-3)",
-                fontSize: 11,
-                fontFamily: "var(--font-mono)",
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
+                border: "1px solid var(--rule, #1a1a20)",
+                background: "transparent",
+                color: "var(--ink-2)",
+                fontSize: 12,
+                fontWeight: 450,
                 cursor: "pointer",
               }}
             >

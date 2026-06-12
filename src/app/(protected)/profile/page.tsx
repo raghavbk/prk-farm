@@ -8,6 +8,7 @@ import Link from "next/link";
 import { ViewTransition } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { I } from "@/components/ui/icons";
+import { EditNameForm } from "./edit-name-form";
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();
@@ -63,12 +64,15 @@ export default async function ProfilePage() {
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 28 }}>
             <Avatar id={user.id} name={displayName} size={72} />
             <div style={{ minWidth: 0 }}>
-              <h1
-                className="serif"
-                style={{ fontSize: "clamp(28px, 5vw, 32px)", margin: 0, letterSpacing: "-0.01em" }}
-              >
-                {displayName}
-              </h1>
+              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
+                <h1
+                  className="serif"
+                  style={{ fontSize: "clamp(28px, 5vw, 32px)", margin: 0, letterSpacing: "-0.01em" }}
+                >
+                  {displayName}
+                </h1>
+                <EditNameForm currentName={displayName} />
+              </div>
               <div
                 style={{
                   fontSize: 13,
