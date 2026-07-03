@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useEffect } from "react";
 import { recordSettlement, type SettlementResult } from "@/actions/settlement";
 
 type Member = { id: string; name: string };
@@ -9,13 +9,34 @@ type Props = {
   groupId: string;
   members: Member[];
   currentUserId: string;
+  balanceMap: Record<string, number>;
 };
 
-export function SettleForm({ groupId, members, currentUserId }: Props) {
+export function SettleForm({ groupId, members, currentUserId, balanceMap }: Props) {
   const [state, formAction, pending] = useActionState<SettlementResult, FormData>(
     recordSettlement,
     undefined
   );
+
+  const defaultTo = members.find((m) => m.id !== currentUserId)?.id ?? "";
+
+  const [fromId, setFromId] = useState(currentUserId);
+  const [toId, setToId] = useState(defaultTo);
+  const [amount, setAmount] = useState("");
+
+  // Pre-fill amount when from/to changes
+  useEffect(() => {
+    const suggested = balanceMap[`${fromId}:${toId}`];
+    if (suggested && suggested > 0) {
+      setAmount(String(suggested));
+    } else {
+      setAmount("");
+    }
+  }, [fromId, toId, balanceMap]);
+
+  const suggested = balanceMap[`${fromId}:${toId}`];
+  const fromName = members.find((m) => m.id === fromId)?.name ?? "";
+  const toName = members.find((m) => m.id === toId)?.name ?? "";
 
   return (
     <form action={formAction} className="mt-6 space-y-5">
@@ -27,7 +48,8 @@ export function SettleForm({ groupId, members, currentUserId }: Props) {
           id="fromId"
           name="fromId"
           required
-          defaultValue={currentUserId}
+          value={fromId}
+          onChange={(e) => setFromId(e.target.value)}
           className="input-warm"
         >
           {members.map((m) => (
@@ -38,7 +60,14 @@ export function SettleForm({ groupId, members, currentUserId }: Props) {
 
       <div>
         <label htmlFor="toId" className="section-label mb-2 block">To (who is receiving)</label>
-        <select id="toId" name="toId" required className="input-warm">
+        <select
+          id="toId"
+          name="toId"
+          required
+          value={toId}
+          onChange={(e) => setToId(e.target.value)}
+          className="input-warm"
+        >
           {members.map((m) => (
             <option key={m.id} value={m.id}>{m.name}</option>
           ))}
@@ -55,8 +84,28 @@ export function SettleForm({ groupId, members, currentUserId }: Props) {
           min="0.01"
           step="0.01"
           placeholder="0.00"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
           className="input-warm"
         />
+        {suggested && suggested > 0 && fromId !== toId && (
+          <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 6, lineHeight: 1.4 }}>
+            Current balance: {fromName} owes {toName}{" "}
+            <span style={{ color: "var(--accent)", fontWeight: 500 }}>
+              ₹{suggested.toLocaleString("en-IN")}
+            </span>
+          </p>
+        )}
+        {fromId === toId && (
+          <p style={{ fontSize: 12, color: "var(--neg)", marginTop: 6 }}>
+            From and To must be different members.
+          </p>
+        )}
+        {suggested === undefined && fromId !== toId && (
+          <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 6 }}>
+            No outstanding balance between these members.
+          </p>
+        )}
       </div>
 
       <div>
@@ -90,7 +139,11 @@ export function SettleForm({ groupId, members, currentUserId }: Props) {
         </div>
       )}
 
-      <button type="submit" disabled={pending} className="btn btn-primary btn-press w-full">
+      <button
+        type="submit"
+        disabled={pending || fromId === toId}
+        className="btn btn-primary btn-press w-full"
+      >
         {pending ? "Recording…" : "Record settlement"}
       </button>
     </form>

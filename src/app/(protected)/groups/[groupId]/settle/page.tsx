@@ -15,7 +15,7 @@ export default async function SettlePage({
 
   const supabase = await createClient();
 
-  const [groupRes, membersRes] = await Promise.all([
+  const [groupRes, membersRes, balancesRes] = await Promise.all([
     supabase
       .from("groups")
       .select("id, name")
@@ -25,6 +25,10 @@ export default async function SettlePage({
     supabase
       .from("group_members")
       .select("user_id, profiles(id, display_name)")
+      .eq("group_id", groupId),
+    supabase
+      .from("group_balances")
+      .select("creditor_id, debtor_id, net_amount")
       .eq("group_id", groupId),
   ]);
 
@@ -39,6 +43,15 @@ export default async function SettlePage({
   const members = ((membersRes.data ?? []) as unknown as MemberRaw[])
     .filter((m) => m.profiles)
     .map((m) => ({ id: m.user_id, name: m.profiles!.display_name }));
+
+  // Build pairwise balance map: key = "debtorId:creditorId", value = net_amount
+  // "from" = debtor (paying), "to" = creditor (receiving)
+  type BalRow = { creditor_id: string; debtor_id: string; net_amount: number };
+  const rawBalances = (balancesRes.data ?? []) as BalRow[];
+  const balanceMap: Record<string, number> = {};
+  for (const b of rawBalances) {
+    balanceMap[`${b.debtor_id}:${b.creditor_id}`] = Math.round(Number(b.net_amount));
+  }
 
   return (
     <main className="mx-auto w-full max-w-[480px] px-5 sm:px-8 py-8 sm:py-10">
@@ -67,7 +80,12 @@ export default async function SettlePage({
         balances without adding to total farm expenses.
       </p>
 
-      <SettleForm groupId={groupId} members={members} currentUserId={user.id} />
+      <SettleForm
+        groupId={groupId}
+        members={members}
+        currentUserId={user.id}
+        balanceMap={balanceMap}
+      />
     </main>
   );
 }
