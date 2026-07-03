@@ -13,7 +13,7 @@ export function EditGroupForm({ groupId, groupName }: Props) {
 
   return (
     <section className="card-surface p-5">
-      <p className="eyebrow mb-3">Group name</p>
+      <label htmlFor="name" className="eyebrow mb-3 block">Group name</label>
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="groupId" value={groupId} />
         <input
