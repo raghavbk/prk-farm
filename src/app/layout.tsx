@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
+import { PwaRegister } from "@/components/pwa-register";
+import { PwaInstallBanner } from "@/components/pwa-install-banner";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -24,11 +26,18 @@ const instrumentSerif = Instrument_Serif({
 export const metadata: Metadata = {
   title: "chukta — money divides, chukta settles",
   description: "Money divides. Chukta settles. Hisaab khatam, dosti kayam.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Chukta",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#0F6E56",
 };
 
 // Runs before first paint to apply the user's saved theme and prevent FOUC.
@@ -57,8 +66,14 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icon-152.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
       </head>
-      <body className="min-h-full flex flex-col antialiased">{children}</body>
+      <body className="min-h-full flex flex-col antialiased">
+        <PwaRegister />
+        {children}
+        <PwaInstallBanner />
+      </body>
     </html>
   );
 }

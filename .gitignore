@@ -51,3 +51,4 @@ context.md
 
 # design screenshots
 *.png
+!public/icon-*.png
