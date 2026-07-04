@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useEffect } from "react";
+import { useActionState, useState } from "react";
 import { recordSettlement, type SettlementResult } from "@/actions/settlement";
 
 type Member = { id: string; name: string };
@@ -22,20 +22,24 @@ export function SettleForm({ groupId, members, currentUserId, balanceMap }: Prop
 
   const [fromId, setFromId] = useState(currentUserId);
   const [toId, setToId] = useState(defaultTo);
-  const [amount, setAmount] = useState("");
+  // null = use the pre-filled balance value; string = user override
+  const [editedAmount, setEditedAmount] = useState<string | null>(null);
 
-  // Pre-fill amount when from/to changes.
-  // group_balances stores ONE row per pair with net_amount > 0 (nets both directions).
-  // Key format: "debtor_id:creditor_id" — from=debtor, to=creditor is the natural direction.
-  // Also check the reverse so we surface the balance even if direction is flipped.
-  useEffect(() => {
-    const forward = balanceMap[`${fromId}:${toId}`]; // from owes to
-    if (forward && forward > 0) {
-      setAmount(String(forward));
-    } else {
-      setAmount("");
-    }
-  }, [fromId, toId, balanceMap]);
+  // Derive pre-fill from the balance map whenever from/to changes.
+  // group_balances stores ONE row per pair with net_amount > 0.
+  // Key format: "debtor_id:creditor_id" (from owes to).
+  const prefillAmount = balanceMap[`${fromId}:${toId}`];
+  const amount = editedAmount ?? (prefillAmount && prefillAmount > 0 ? String(prefillAmount) : "");
+
+  function handleFromChange(id: string) {
+    setFromId(id);
+    setEditedAmount(null); // reset user override so pre-fill re-applies
+  }
+
+  function handleToChange(id: string) {
+    setToId(id);
+    setEditedAmount(null);
+  }
 
   const forwardBalance = balanceMap[`${fromId}:${toId}`]; // from owes to → natural settlement
   const reverseBalance = balanceMap[`${toId}:${fromId}`]; // to owes from → reversed direction
@@ -53,7 +57,7 @@ export function SettleForm({ groupId, members, currentUserId, balanceMap }: Prop
           name="fromId"
           required
           value={fromId}
-          onChange={(e) => setFromId(e.target.value)}
+          onChange={(e) => handleFromChange(e.target.value)}
           className="input-warm"
         >
           {members.map((m) => (
@@ -69,7 +73,7 @@ export function SettleForm({ groupId, members, currentUserId, balanceMap }: Prop
           name="toId"
           required
           value={toId}
-          onChange={(e) => setToId(e.target.value)}
+          onChange={(e) => handleToChange(e.target.value)}
           className="input-warm"
         >
           {members.map((m) => (
@@ -89,7 +93,7 @@ export function SettleForm({ groupId, members, currentUserId, balanceMap }: Prop
           step="0.01"
           placeholder="0.00"
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(e) => setEditedAmount(e.target.value)}
           className="input-warm"
         />
         {fromId === toId && (
