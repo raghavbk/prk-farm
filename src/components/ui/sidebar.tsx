@@ -207,7 +207,7 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Me + admin shortcut */}
+      {/* Me */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 4px" }}>
         <Avatar name={userName} id={userId} size={28} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -228,40 +228,45 @@ export function Sidebar({
           </div>
         </div>
         <ThemeToggle compact />
+      </div>
+
+      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
         {isTenantAdmin && (
           <Link
             href="/admin"
-            title="Admin panel"
-            className="admin-icon-btn"
+            className="admin-panel-btn"
             style={{
-              display: "inline-flex",
+              flex: 1,
+              height: 34,
+              display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 28,
-              height: 28,
-              borderRadius: 7,
+              gap: 6,
+              borderRadius: 8,
               border: "1px solid var(--rule)",
               background: pathname.startsWith("/admin") ? "var(--card)" : "transparent",
               color: pathname.startsWith("/admin") ? "var(--accent)" : "var(--ink-3)",
-              flexShrink: 0,
-              transition: "color 0.15s, background 0.15s",
+              fontSize: 12,
+              fontWeight: 500,
+              textDecoration: "none",
+              transition: "background 0.15s, color 0.15s",
             }}
           >
             <I.settings size={13} />
+            Admin
           </Link>
         )}
+        <form action="/auth/signout" method="post" style={{ flex: 1 }}>
+          <button
+            type="submit"
+            className="btn btn-ghost"
+            style={{ width: "100%", height: 34, fontSize: 12, fontWeight: 500, color: "var(--ink-3)" }}
+          >
+            Sign out
+          </button>
+        </form>
       </div>
-      <style>{`.admin-icon-btn:hover { color: var(--ink) !important; background: var(--card) !important; }`}</style>
-
-      <form action="/auth/signout" method="post" style={{ marginTop: 8 }}>
-        <button
-          type="submit"
-          className="btn btn-ghost"
-          style={{ width: "100%", height: 34, fontSize: 12, fontWeight: 500, color: "var(--ink-3)" }}
-        >
-          Sign out
-        </button>
-      </form>
+      <style>{`.admin-panel-btn:hover { background: var(--card) !important; color: var(--ink) !important; }`}</style>
     </aside>
   );
 }
