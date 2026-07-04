@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { I } from "@/components/ui/icons";
 import { SettleForm } from "./settle-form";
+import { simplifyTransfers, type BalanceRow } from "@/lib/simplify-transfers";
 
 export default async function SettlePage({
   params,
@@ -44,33 +45,7 @@ export default async function SettlePage({
     .filter((m) => m.profiles)
     .map((m) => ({ id: m.user_id, name: m.profiles!.display_name }));
 
-  type BalRow = { creditor_id: string; debtor_id: string; net_amount: number };
-  const rawBalances = (balancesRes.data ?? []) as BalRow[];
-
-  // Run the same debt-minimization used by the Balances tab so the pre-filled
-  // amounts match what the settlement plan recommends.
-  function simplifyTransfers(rows: BalRow[]) {
-    const net = new Map<string, number>();
-    for (const b of rows) {
-      net.set(b.creditor_id, (net.get(b.creditor_id) ?? 0) + Number(b.net_amount));
-      net.set(b.debtor_id, (net.get(b.debtor_id) ?? 0) - Number(b.net_amount));
-    }
-    const creditors = [...net.entries()].filter(([, v]) => v > 1).sort((a, b) => b[1] - a[1]);
-    const debtors  = [...net.entries()].filter(([, v]) => v < -1).sort((a, b) => a[1] - b[1]);
-    const out: { from: string; to: string; amount: number }[] = [];
-    let i = 0, j = 0;
-    while (i < debtors.length && j < creditors.length) {
-      const [dId, dVal] = debtors[i];
-      const [cId, cVal] = creditors[j];
-      const amt = Math.round(Math.min(-dVal, cVal));
-      if (amt > 1) out.push({ from: dId, to: cId, amount: amt });
-      debtors[i][1] = dVal + amt;
-      creditors[j][1] = cVal - amt;
-      if (Math.abs(debtors[i][1]) < 1) i++;
-      if (Math.abs(creditors[j][1]) < 1) j++;
-    }
-    return out;
-  }
+  const rawBalances = (balancesRes.data ?? []) as BalanceRow[];
 
   // Build map: "fromId:toId" → simplified settlement amount
   const balanceMap: Record<string, number> = {};
